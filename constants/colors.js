@@ -1,0 +1,22 @@
+const COLORS = {
+  secondary: '#0F1828',
+  secondaryPrimary: '#007260',
+  secondary2: '#39B68D',
+  white: '#FFFFFF',
+  secondaryWhite: '#F7F7FC',
+  tertiaryWhite: '#fafafa',
+  green: '#32CD32',
+  darkGreeen: '#075E54',
+  black: '#000000',
+  secondaryBlack: '#0F1828',
+  gray: '#CCCCCC',
+  Midgray: '#7e7e7e',
+  primarygray: '#5a5a5a',
+  darkgray: '#2a2a2a',
+  darkgray1: '#5b5b5b',
+  secondaryGray: '#959595',
+  red: '#E60000',
+  pastelPurple:'#DAC6FF',
+  
+};
+export default COLORS;

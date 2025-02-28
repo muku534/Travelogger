@@ -33,13 +33,20 @@ local.properties
 .cxx/
 *.keystore
 !debug.keystore
-.kotlin/
 
 # node.js
 #
 node_modules/
 npm-debug.log
 yarn-error.log
+
+.env
+android/app/google-services.json
+android/app/release
+android/app/build/outputs/apk
+key_store.jks
+my-release-key.jks
+
 
 # fastlane
 #
