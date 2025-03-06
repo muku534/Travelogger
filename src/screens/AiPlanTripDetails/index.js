@@ -1,43 +1,24 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, version } from 'react';
 import { View, Text, ImageBackground, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, StatusBar, Animated, Image, ScrollView } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { COLORS } from '../../../constants';
+import { COLORS, fontFamily, SVGS } from '../../../constants';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
-import fontFamily from '../../../constants/fontFamily';
-import Share from "../../../assets/icons/sharebg_icon.svg";
-import Save from "../../../assets/icons/bookmark.svg";
-import Budget from "../../../assets/icons/total budget_icon.svg";
-import Calendar from "../../../assets/icons/calendarai_icon.svg";
-import Hotel from '../../../assets/icons/hotelai_icon.svg';
-import Activity from '../../../assets/icons/Activitiesai_icon.png';
-import Restaurants from '../../../assets/icons/Restaurantsai_icon.svg';
-import LinearGradient from 'react-native-linear-gradient';
 import MapView, { Marker } from 'react-native-maps';
+import { useDispatch, useSelector } from 'react-redux';
+import Toast from "react-native-toast-message";
+import { createItineraries } from '../../services/planTripService';
+import LinearGradient from 'react-native-linear-gradient';
 
-const tripData = [
-    {
-        day: '18 Feb 25',
-        items: [
-            { id: '1', title: 'Royal Park Iconic', category: 'Hotel', price: '$200', rating: 3.6, image: require('../../../assets/images/Bali.png') },
-            { id: '2', title: 'Senso-ji Temple', category: 'Activity', price: '$50', rating: 3.6, image: require('../../../assets/images/Bristol.png') },
-            { id: '3', title: 'Tofu Ukai', category: 'Restaurant', price: '$100', rating: 3.6, image: require('../../../assets/images/Canada.png') },
-        ]
-    },
-    {
-        day: '19 Feb 25',
-        items: [
-            { id: '4', title: 'Shinjuku Hotel', category: 'Hotel', price: '$150', rating: 4.2, image: require('../../../assets/images/Turkey.png') },
-            { id: '5', title: 'Tokyo Tower Tour', category: 'Activity', price: '$70', rating: 4.5, image: require('../../../assets/images/Thailand.png') },
-            { id: '6', title: 'Sushi Zanmai', category: 'Restaurant', price: '$120', rating: 4.8, image: require('../../../assets/images/usa.png') },
-        ]
-    }
-];
-
-
-const AiPlanTripDetails = ({ navigation }) => {
+const AiPlanTripDetails = ({ navigation, route }) => {
+    const dispatch = useDispatch();
+    const { destination, startDate, endDate, coordinates, tripDays } = useSelector(state => state.tripDetails);
+    console.log("tripDays", tripDays);
     const [expanded, setExpanded] = useState(null);
     const [activeTab, setActiveTab] = useState('List');
     const sliderAnim = useRef(new Animated.Value(wp(12))).current; // Start at 'List' position
+    const userData = useSelector(state => state.userData);
+    const [loading, setLoading] = useState(false);
+    const [distances, setDistances] = useState({});
 
     const handleToggle = (tab) => {
         setActiveTab(tab);
@@ -47,33 +28,344 @@ const AiPlanTripDetails = ({ navigation }) => {
             useNativeDriver: false,
         }).start();
     };
+
+    // Function to calculate Haversine Distance
+    const haversineDistance = (coords1, coords2) => {
+        const toRad = (angle) => (Math.PI / 180) * angle;
+        const R = 3958.8; // Radius of Earth in km
+
+        const lat1 = toRad(coords1?.latitude);
+        const lon1 = toRad(coords1?.longitude);
+        const lat2 = toRad(coords2?.latitude);
+        const lon2 = toRad(coords2?.longitude);
+
+        const dLat = lat2 - lat1;
+        const dLon = lon2 - lon1;
+
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return (R * c).toFixed(2); // Returns distance in km
+    };
+
+    // Estimate Duration Based on Distance
+    const estimateDuration = (distance, category) => {
+        let speedMph = 50; // Default speed (Car travel)
+
+        if (category === "Walking") speedMph = 3;
+        if (category === "Biking") speedMph = 12;
+
+        const durationHours = distance / speedMph;
+        const durationMinutes = Math.round(durationHours * 60);
+
+        return durationMinutes > 60
+            ? `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}m`
+            : `${durationMinutes} min`;
+    };
+
+    useEffect(() => {
+        calculateDistances();
+    }, [tripDays]);
+
+    // Function to calculate distances locally
+    const calculateDistances = () => {
+        let newDistances = {};
+
+        for (let i = 0; i < tripDays.length; i++) {
+            let places = [];
+
+            // Handle both `items` and `sections` structures
+            if (tripDays[i]?.items && Array.isArray(tripDays[i].items)) {
+                places = tripDays[i].items;
+            } else if (tripDays[i]?.sections) {
+                places = [
+                    ...(tripDays[i].sections.hotels || []),
+                    ...(tripDays[i].sections.activities || []),
+                    ...(tripDays[i].sections.restaurants || [])
+                ];
+            }
+
+            if (!places || places.length < 2) continue;
+
+            for (let j = 0; j < places.length - 1; j++) {
+                // Extract coordinates, handling both data formats
+                const getCoordinates = (place) => {
+                    if (!place) return null;
+                    if (place.coordinates) {
+                        return { latitude: place.coordinates[0], longitude: place.coordinates[1] };
+                    } else if (place.location?.coordinates) {
+                        return { latitude: place.location.coordinates[0], longitude: place.location.coordinates[1] };
+                    }
+                    return null;
+                };
+
+                let origin = getCoordinates(places[j]);
+                let destination = getCoordinates(places[j + 1]);
+                let category = places[j]?.category || places[j]?.type;
+
+                // Ensure we use either `name` or `title`
+                const originName = places[j]?.name || places[j]?.title || "Unnamed Place";
+                const destinationName = places[j + 1]?.name || places[j + 1]?.title || "Unnamed Place";
+
+                if (!origin || !destination || !origin.latitude || !origin.longitude || !destination.latitude || !destination.longitude) {
+                    console.warn(`Missing coordinates for ${originName} or ${destinationName}`);
+                    continue;
+                }
+
+                const distanceMiles = haversineDistance(origin, destination);
+                const durationText = estimateDuration(distanceMiles, category);
+
+                console.log(`Distance from ${originName} to ${destinationName}: ${distanceMiles} miles, ${durationText}`);
+
+                newDistances[`${originName}-${destinationName}`] = {
+                    distance: `${distanceMiles} miles`,
+                    duration: durationText,
+                };
+            }
+        }
+
+        setDistances(newDistances);
+    };
+
+
+    const handleSaveItinerary = async () => {
+        console.log("Trip Details:", tripDays);
+
+        try {
+            setLoading(true);
+
+            const itineraryData = {
+                itinerary: {
+                    userId: userData.userId,
+                    title: `${destination} Trip ${new Date().getFullYear()}`,
+                    status: "draft",
+                    visibility: "private",
+                    generatedBy: "AI",
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    tripImg: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80",
+                    tripDetails: {
+                        destination: { name: destination, coordinates: coordinates },
+                        startDate: startDate,
+                        endDate: endDate,
+                        budget: {
+                            currency: "USD",
+                            total: 0,
+                            breakdown: { accommodation: 0, activities: 0, dining: 0, transport: 0 },
+                        },
+                    },
+                    days: tripDays.map((day, index) => ({
+                        date: new Date(day.date || day.day).toISOString().split("T")[0], // Support both formats
+                        dayNumber: index + 1,
+                        budget: { planned: 0, actual: 0 },
+
+                        sections: {
+                            hotels: (day.sections?.hotels || day.items?.filter(item => item.category === "Hotel") || []).map(hotel => ({
+                                id: hotel.id || null,
+                                type: "hotel",
+                                title: hotel.name || hotel.title || "Unnamed Hotel",
+                                description: hotel.description || "",
+                                location: {
+                                    name: hotel.location?.name || hotel.name || "",
+                                    address: hotel.location?.address || hotel.address || "",
+                                    coordinates: hotel.location?.coordinates
+                                        ? [hotel.location.coordinates[0], hotel.location.coordinates[1]]
+                                        : hotel.coordinates
+                                            ? [hotel.coordinates.latitude, hotel.coordinates.longitude]
+                                            : [],
+                                    placeId: hotel.location?.placeId || hotel.placeId || null
+                                },
+                                startTime: hotel.startTime || null,
+                                endTime: hotel.endTime || null,
+                                duration: hotel.duration || null,
+                                price: hotel.price || 0,
+                                priceLevel: hotel.priceLevel || 1,
+                                rating: hotel.rating || 0,
+                                userRatingsTotal: hotel.userRatingsTotal || 0,
+                                photos: hotel.photos && Array.isArray(hotel.photos)
+                                    ? hotel.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                    : hotel.image ? [{ url: hotel.image }] : [],
+                                contact: {
+                                    phone: hotel.contact?.phone || hotel.phone || "",
+                                    email: hotel.contact?.email || "",
+                                    website: hotel.contact?.website || hotel.website || "",
+                                    googleMapsUrl: hotel.contact?.googleMapsUrl || hotel.googleMapsUrl || "",
+                                },
+                                operatingHours: {
+                                    isOpen: hotel.operatingHours?.isOpen || hotel.isOpen || false,
+                                    periods: hotel.operatingHours?.periods
+                                        ? Object.values(hotel.operatingHours.periods.reduce((acc, period) => {
+                                            acc[period.day] = period; // Keep only the last entry per day
+                                            return acc;
+                                        }, {}))
+                                        : (hotel.openDay && hotel.openTime ? [{ day: hotel.openDay, hours: hotel.openTime }] : [])
+                                },
+                                bookingInfo: hotel.bookingInfo || null,
+                                metadata: {
+                                    tags: hotel.tags || [],
+                                    isTemplate: hotel.isTemplate || false,
+                                    language: hotel.language || "en",
+                                    version: hotel.version || 1,
+                                }
+                            })),
+
+                            activities: (day.sections?.activities || day.items?.filter(item => item.category === "Activity") || []).map(activity => ({
+                                type: "activity",
+                                title: activity.name || activity.title || "Unnamed Activity",
+                                description: activity.description || "",
+                                location: {
+                                    name: activity.location?.name || activity.name || "",
+                                    address: activity.location?.address || activity.address || "",
+                                    coordinates: activity.location?.coordinates
+                                        ? [activity.location.coordinates[0], activity.location.coordinates[1]]
+                                        : activity.coordinates
+                                            ? [activity.coordinates.latitude, activity.coordinates.longitude]
+                                            : [],
+                                    placeId: activity.location?.placeId || activity.placeId || null
+                                },
+                                startTime: activity.startTime || null,
+                                endTime: activity.endTime || null,
+                                duration: activity.duration || null,
+                                price: activity.price || 0,
+                                priceLevel: activity.priceLevel || 1,
+                                rating: activity.rating || 0,
+                                userRatingsTotal: activity.userRatingsTotal || 0,
+                                photos: activity.photos && Array.isArray(activity.photos)
+                                    ? activity.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                    : activity.image ? [{ url: activity.image }] : [],
+                                contact: {
+                                    phone: activity.contact?.phone || activity.phone || "",
+                                    email: activity.contact?.email || activity.email || "",
+                                    website: activity.contact.website || activity.website || "",
+                                    googleMapsUrl: activity.contact?.googleMapsUrl || activity.googleMapsUrl || "",
+                                },
+                                operatingHours: {
+                                    isOpen: activity.operatingHours?.isOpen || activity.isOpen || false,
+                                    periods: activity.operatingHours?.periods
+                                        ? Object.values(activity.operatingHours.periods.reduce((acc, period) => {
+                                            acc[period.day] = period; // Keep only the last entry per day
+                                            return acc;
+                                        }, {}))
+                                        : (activity.openDay && activity.openTime ? [{ day: activity.openDay, hours: activity.openTime }] : [])
+                                },
+                                metadata: {
+                                    tags: activity.tags || [],
+                                    isTemplate: activity.isTemplate || false,
+                                    language: activity.language || "en",
+                                    version: activity.version || 1,
+                                }
+                            })),
+
+                            restaurants: (day.sections?.restaurants || day.items?.filter(item => item.category === "Restaurant") || []).map(restaurant => ({
+                                type: "restaurant",
+                                title: restaurant.title || restaurant.name || "",
+                                description: restaurant.description || restaurant.address || "",
+                                location: {
+                                    name: restaurant.location?.name || restaurant.name || "",
+                                    address: restaurant.location?.address || restaurant.address || "",
+                                    coordinates: restaurant.location?.coordinates
+                                        ? [restaurant.location.coordinates[0], restaurant.location.coordinates[1]]
+                                        : restaurant.coordinates
+                                            ? [restaurant.coordinates.latitude, restaurant.coordinates.longitude]
+                                            : [],
+                                    placeId: restaurant.location?.placeId || restaurant.placeId || null
+                                },
+                                startTime: restaurant.startTime || null,
+                                endTime: restaurant.endTime || null,
+                                duration: restaurant.duration || null,
+                                price: restaurant.price || 0,
+                                priceLevel: restaurant.priceLevel || 1,
+                                rating: restaurant.rating || 0,
+                                userRatingsTotal: restaurant.userRatingsTotal || 0,
+                                photos: restaurant.photos && Array.isArray(restaurant.photos)
+                                    ? restaurant.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                    : restaurant.image ? [{ url: restaurant.image }] : [],
+                                contact: {
+                                    phone: restaurant?.contact?.phone || restaurant.phone || "",
+                                    email: restaurant?.contact?.email || restaurant.email || "",
+                                    website: restaurant?.contact?.website || restaurant.website || "",
+                                    googleMapsUrl: restaurant?.contact?.googleMapsUrl || restaurant.googleMapsUrl || "",
+                                },
+                                operatingHours: {
+                                    isOpen: restaurant.isOpen || false,
+                                    periods: restaurant.operatingHours?.periods
+                                        ? Object.values(restaurant.operatingHours.periods.reduce((acc, period) => {
+                                            acc[period.day] = period; // Keep only the last entry per day
+                                            return acc;
+                                        }, {}))
+                                        : (restaurant.openDay && restaurant.openTime ? [{ day: restaurant.openDay, hours: restaurant.openTime }] : [])
+                                },
+                                metadata: {
+                                    tags: restaurant.tags || [],
+                                    isTemplate: restaurant.isTemplate || false,
+                                    language: restaurant.language || "en",
+                                    version: restaurant.version || 1,
+                                },
+                                cuisine: restaurant.cuisine || [],
+                            })),
+                        }
+                    })),
+                },
+            };
+
+            console.log("Saving Itinerary:", itineraryData);
+
+            // Uncomment when ready to save
+            const response = await createItineraries(itineraryData);
+            console.log("Itinerary Saved:", response);
+
+
+            Toast.show({
+                type: "success",
+                text1: "Success",
+                text2: "Itinerary saved successfully!",
+            });
+            navigation.navigate("Aliternary");
+        } catch (error) {
+            console.error("Error saving itinerary:", error);
+
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Failed to save itinerary. Try again later.",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
             <StatusBar translucent backgroundColor="transparent" barStyle={activeTab === 'List' ? 'light-content' : 'dark-content'} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(2) }} >
                 <View style={styles.container}>
-                    {/* Header Image with Overlay */}
-                    {/* Background Image OR Map */}
                     {activeTab === 'List' ? (
-                        <ImageBackground source={require('../../../assets/images/Turkey.png')} style={styles.headerImage}>
+                        <ImageBackground source={{ uri: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80" }} style={styles.headerImage}>
                             <View style={styles.overlay} />
                         </ImageBackground>
                     ) : (
                         <MapView
-                            provider="google" // Use Google Maps
+                            provider="google"
                             style={{ width: wp(100), height: hp(30) }}
                             initialRegion={{
-                                latitude: 35.6895,
-                                longitude: 139.6917,
-                                latitudeDelta: 0.5,
-                                longitudeDelta: 0.4,
+                                latitude: coordinates?.[0] || 22.3193, // Default to Hong Kong
+                                longitude: coordinates?.[1] || 114.1694,
+                                latitudeDelta: 0.1,
+                                longitudeDelta: 0.1,
                             }}
                             onMapReady={() => console.log("Map Loaded")}
                             onError={(error) => console.log("Map Error: ", error)}
                         >
-                            <Marker coordinate={{ latitude: 35.6895, longitude: 139.6917 }} title="Tokyo" />
+                            <Marker
+                                coordinate={{
+                                    latitude: coordinates?.[0] || 22.3193,
+                                    longitude: coordinates?.[1] || 114.1694,
+                                }}
+                                title={destination}
+                                description="Main Destination"
+                            />
                         </MapView>
-
 
                     )}
 
@@ -93,7 +385,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                     <View style={styles.toggleContainer}>
                         <Animated.View style={[styles.slider, { transform: [{ translateX: sliderAnim }] }]}>
                             <LinearGradient
-                                colors={['#5100E6', '#008075']}
+                                colors={[COLORS.RoyalBlueViolet, COLORS.DeepTeal]}
                                 start={{ x: 0, y: 0.5 }}
                                 end={{ x: 1, y: 0.5 }}
                                 style={[StyleSheet.absoluteFill, { borderRadius: wp(2) }]}
@@ -114,34 +406,34 @@ const AiPlanTripDetails = ({ navigation }) => {
                     </View>
 
                     <View style={styles.tripInfo}>
-                        <Text style={styles.title}>Plan Your Tokyo Trip</Text>
+                        <Text style={styles.title}>{destination}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Calendar width={wp(4)} height={hp(2)} />
-                            <Text style={styles.date}> 18/2/25 - 19/2/2025</Text>
+                            <SVGS.CALENDAR width={wp(4)} height={hp(2)} />
+                            <Text style={styles.date}>  {startDate} - {endDate}</Text>
                         </View>
                         <Text style={styles.description}>Plan your Trip day by day. Add Hotels, Restaurants, and Activities to create a Perfect Itinerary</Text>
                         <View style={styles.budgetContainer}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <Budget width={wp(5)} height={hp(4)} />
+                                <SVGS.AIBUDGET width={wp(5)} height={hp(4)} />
                                 <View style={{ paddingHorizontal: wp(1) }}>
                                     <Text style={styles.budgetText}>Total Budget</Text>
                                     <Text style={styles.budgetAmount}>$0.0</Text>
                                 </View>
                             </View>
                             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: wp(3), marginLeft: 'auto' }}>
-                                <TouchableOpacity style={styles.saveButton} activeOpacity={0.5}>
-                                    <Save width={wp(5)} height={hp(2)} />
+                                <TouchableOpacity style={styles.saveButton} onPress={handleSaveItinerary} activeOpacity={0.5}>
+                                    <SVGS.SAVE width={wp(5)} height={hp(2)} />
                                     <Text style={styles.buttonText}>Save</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity activeOpacity={0.5} style={{ height: hp(3.5), width: wp(9), borderRadius: wp(2), marginLeft: wp(3), overflow: 'hidden' }}>
                                     <LinearGradient
-                                        colors={['#5100E6', '#008075']}
+                                        colors={[COLORS.RoyalBlueViolet, COLORS.DeepTeal]}
                                         start={{ x: 0, y: 0.5 }}
                                         end={{ x: 1, y: 0.5 }}
                                         style={StyleSheet.absoluteFill}
                                     />
                                     <View style={{ justifyContent: 'center', alignItems: 'center', height: '100%', width: '100%' }}>
-                                        <Share width={wp(5)} height={hp(3)} />
+                                        <SVGS.SHARE width={wp(5)} height={hp(3)} />
                                     </View>
                                 </TouchableOpacity>
 
@@ -150,20 +442,38 @@ const AiPlanTripDetails = ({ navigation }) => {
                     </View>
 
                     <FlatList
-                        data={tripData}
+                        data={tripDays}
                         keyExtractor={(item, index) => index.toString()}
                         renderItem={({ item, index }) => {
-                            const hotel = item.items.find((place) => place.category === "Hotel");
-                            const activity = item.items.find((place) => place.category === "Activity");
-                            const restaurant = item.items.find((place) => place.category === "Restaurant");
+
+                            let hotels = [], activities = [], restaurants = [];
+
+                            if (item?.items && Array.isArray(item.items)) {
+                                // ✅ Handles both `type` and `category` fields
+                                hotels = item.items.filter((place) => place.type?.toLowerCase() === "hotel" || place.category === "Hotel");
+                                activities = item.items.filter((place) => place.type?.toLowerCase() === "activity" || place.category === "Activity");
+                                restaurants = item.items.filter((place) => place.type?.toLowerCase() === "restaurant" || place.category === "Restaurant");
+                            } else if (item?.sections) {
+                                // ✅ Handles `sections` format
+                                hotels = item.sections.hotels || [];
+                                activities = item.sections.activities || [];
+                                restaurants = item.sections.restaurants || [];
+                            }
 
                             return (
                                 <View style={styles.dayContainer}>
-                                    <TouchableOpacity onPress={() => setExpanded(expanded === index ? null : index)} style={styles.dayHeader}>
+                                    {/* Expandable Header */}
+                                    <TouchableOpacity
+                                        onPress={() => setExpanded(expanded === index ? null : index)}
+                                        style={styles.dayHeader}
+                                    >
                                         <View>
                                             <Text style={styles.dayTitle}>Day {index + 1}: {item.day}</Text>
-                                            <Text style={{ color: COLORS.darkgray, fontSize: hp(1.7), fontFamily: fontFamily.FONTS.Medium }}>
-                                                0 items <Text style={{ color: '#4A0ADD', fontFamily: fontFamily.FONTS.Medium, fontSize: hp(1.7) }}> $0.00</Text>
+                                            <Text style={{ color: COLORS.RoyalBlue, fontFamily: fontFamily.FONTS.Medium, fontSize: hp(1.7) }}>
+                                                ${[...hotels, ...activities, ...restaurants].reduce((total, place) => {
+                                                    const price = place.price ? parseFloat(place.price.toString().replace('$', '')) : 0;
+                                                    return total + price;
+                                                }, 0).toFixed(2)}
                                             </Text>
                                         </View>
                                         <Ionicons name={expanded === index ? 'chevron-up' : 'chevron-down'} size={wp(5)} color={COLORS.black} />
@@ -171,56 +481,152 @@ const AiPlanTripDetails = ({ navigation }) => {
 
                                     {expanded === index && (
                                         <View style={styles.optionsContainer}>
-                                            {/* Hotel Option and Item */}
-                                            <OptionButton title="Add Hotel" Icon={Hotel} />
-                                            {hotel && (
-                                                <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('SearchScreen', { category: 'Hotel' })}>
-                                                    <View style={styles.placeContainer}>
-                                                        <Image source={hotel.image} style={styles.placeImage} />
-                                                        <View style={styles.placeDetails}>
-                                                            <Text style={styles.placeTitle}>{hotel.title}</Text>
-                                                            <Text style={styles.placeCategory}>{hotel.category} • ⭐ {hotel.rating}</Text>
-                                                        </View>
-                                                        <Text style={styles.placePrice}>{hotel.price}</Text>
-                                                    </View>
-                                                </TouchableOpacity>
-                                            )}
 
-                                            {/* Activity Option and Item */}
-                                            <OptionButton title="Add Activities" Icon={Activity} isImage={true} />
-                                            {activity && (
-                                                <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('SearchScreen', { category: 'Activity' })} >
+                                            {/* Hotel Section */}
+                                            <OptionButton title="Add Hotel" Icon={SVGS.AIHOTEL} onPress={() => handleAddItem('Hotel', index)} />
+                                            {hotels.map((hotel, hotelIndex) => (
+                                                <View key={hotelIndex}>
                                                     <View style={styles.placeContainer}>
-                                                        <Image source={activity.image} style={styles.placeImage} />
-                                                        <View style={styles.placeDetails}>
-                                                            <Text style={styles.placeTitle}>{activity.title}</Text>
-                                                            <Text style={styles.placeCategory}>{activity.category} • ⭐ {activity.rating}</Text>
-                                                        </View>
-                                                        <Text style={styles.placePrice}>{activity.price}</Text>
-                                                    </View>
-                                                </TouchableOpacity>
-                                            )}
+                                                        <View style={styles.imageContainer}>
+                                                            <Image
+                                                                source={{ uri: hotel.image || (hotel.photos?.length > 0 ? hotel.photos[0].url : "fallback-image-url") }}
+                                                                style={styles.placeImage}
+                                                            />
 
-                                            {/* Restaurant Option and Item */}
-                                            <OptionButton title="Add Restaurants" Icon={Restaurants} />
-                                            {restaurant && (
-                                                <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('SearchScreen', { category: 'Restaurant' })}>
-                                                    <View style={styles.placeContainer}>
-                                                        <Image source={restaurant.image} style={styles.placeImage} />
-                                                        <View style={styles.placeDetails}>
-                                                            <Text style={styles.placeTitle}>{restaurant.title}</Text>
-                                                            <Text style={styles.placeCategory}>{restaurant.category} • ⭐ {restaurant.rating}</Text>
+                                                            <View style={styles.badge}>
+                                                                <Text style={styles.badgeText}>{hotelIndex + 1}</Text>
+                                                            </View>
                                                         </View>
-                                                        <Text style={styles.placePrice}>{restaurant.price}</Text>
+                                                        <View style={styles.placeDetails}>
+                                                            <Text style={styles.placeTitle} numberOfLines={1}>{hotel.title || hotel.name || "Unnamed Hotel"}</Text>
+                                                            <Text style={styles.placeCategory} numberOfLines={1}>⭐ {hotel.rating || "N/A"}</Text>
+                                                        </View>
+                                                        <Text style={styles.placePrice}>${hotel.price || 0}</Text>
                                                     </View>
-                                                </TouchableOpacity>
-                                            )}
+
+                                                    {hotelIndex < hotels.length - 1 && (
+                                                        <View style={styles.distanceContainer}>
+                                                            {/* Ensure we use either hotel.name or hotel.title */}
+                                                            {(() => {
+                                                                const currentHotelName = hotel.name || hotel.title || "Unnamed Hotel";
+                                                                const nextHotelName = hotels[hotelIndex + 1]?.name || hotels[hotelIndex + 1]?.title || "Unnamed Hotel";
+                                                                return (
+                                                                    <>
+                                                                        <Text style={styles.distanceText}>
+                                                                            ⏱ {distances[`${currentHotelName}-${nextHotelName}`]?.distance || "N/A"}
+                                                                        </Text>
+                                                                        <Text style={styles.timeText}>
+                                                                            📏 {distances[`${currentHotelName}-${nextHotelName}`]?.duration || "N/A"}
+                                                                        </Text>
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                        </View>
+                                                    )}
+
+
+                                                </View>
+                                            ))}
+
+                                            {/* Activity Section */}
+                                            <OptionButton title="Add Activities" Icon={SVGS.ACTIVITY} isImage={true} onPress={() => handleAddItem('Activity', index)} />
+                                            {activities.map((activity, activityIndex) => (
+                                                <View key={activityIndex}>
+                                                    <View style={styles.placeContainer}>
+                                                        <View style={styles.imageContainer}>
+                                                            <Image
+                                                                source={{ uri: activity.image || (activity.photos?.length > 0 ? activity.photos[0].url : "fallback-image-url") }}
+                                                                style={styles.placeImage}
+                                                            />
+
+                                                            {/* <Image source={{ uri: activity.image || "" }} style={styles.placeImage} /> */}
+                                                            <View style={styles.badge}>
+                                                                <Text style={styles.badgeText}>{activityIndex + 1}</Text>
+                                                            </View>
+                                                        </View>
+                                                        <View style={styles.placeDetails}>
+                                                            <Text style={styles.placeTitle} numberOfLines={1}>{activity.title || activity.name || "Unnamed Activity"}</Text>
+                                                            <Text style={styles.placeCategory} numberOfLines={1}>⭐ {activity.rating || "N/A"}</Text>
+                                                        </View>
+                                                        <Text style={styles.placePrice}>${activity.price || 0}</Text>
+                                                    </View>
+
+                                                    {activityIndex < activities.length - 1 && (
+                                                        <View style={styles.distanceContainer}>
+                                                            {(() => {
+                                                                const currentActivityName = activity.name || activity.title || "Unnamed Activity";
+                                                                const nextActivityName = activities[activityIndex + 1]?.name || activities[activityIndex + 1]?.title || "Unnamed Activity";
+                                                                return (
+                                                                    <>
+                                                                        <Text style={styles.distanceText}>
+                                                                            ⏱ {distances[`${currentActivityName}-${nextActivityName}`]?.distance || "N/A"}
+                                                                        </Text>
+                                                                        <Text style={styles.timeText}>
+                                                                            📏 {distances[`${currentActivityName}-${nextActivityName}`]?.duration || "N/A"}
+                                                                        </Text>
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                            {/* <Text style={styles.distanceText}>{distances[`${activity.name}-${activities[activityIndex + 1]?.name}`]?.distance || "N/A"}</Text>
+                                                            <Text style={styles.timeText}>{distances[`${activity.name}-${activities[activityIndex + 1]?.name}`]?.duration || "N/A"}</Text> */}
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            ))}
+
+                                            {/* Restaurant Section */}
+                                            <OptionButton title="Add Restaurants" Icon={SVGS.RESTAURANTS} onPress={() => handleAddItem('Restaurant', index)} />
+                                            {restaurants.map((restaurant, restaurantIndex) => (
+                                                <View key={restaurantIndex}>
+                                                    <View style={styles.placeContainer}>
+                                                        <View style={styles.imageContainer}>
+                                                            <Image
+                                                                source={{ uri: restaurant.image || (restaurant.photos?.length > 0 ? restaurant.photos[0].url : "fallback-image-url") }}
+                                                                style={styles.placeImage}
+                                                            />
+
+                                                            {/* <Image source={{ uri: restaurant.image || "" }} style={styles.placeImage} /> */}
+                                                            <View style={styles.badge}>
+                                                                <Text style={styles.badgeText}>{restaurantIndex + 1}</Text>
+                                                            </View>
+                                                        </View>
+                                                        <View style={styles.placeDetails}>
+                                                            <Text style={styles.placeTitle} numberOfLines={1}>{restaurant.title || restaurant.name || "Unnamed Restaurant"}</Text>
+                                                            <Text style={styles.placeCategory} numberOfLines={1}>⭐ {restaurant.rating || "N/A"}</Text>
+                                                        </View>
+                                                        <Text style={styles.placePrice}>${restaurant.price || 0}</Text>
+                                                    </View>
+
+                                                    {restaurantIndex < restaurants.length - 1 && (
+                                                        <View style={styles.distanceContainer}>
+                                                            {(() => {
+                                                                const currentRestaurantName = restaurant.name || restaurant.title || "Unnamed Restaurant";
+                                                                const nextRestaurantName = restaurants[restaurantIndex + 1]?.name || restaurants[restaurantIndex + 1]?.title || "Unnamed Restaurant";
+                                                                return (
+                                                                    <>
+                                                                        <Text style={styles.distanceText}>
+                                                                            ⏱ {distances[`${currentRestaurantName}-${nextRestaurantName}`]?.distance || "N/A"}
+                                                                        </Text>
+                                                                        <Text style={styles.timeText}>
+                                                                            📏 {distances[`${currentRestaurantName}-${nextRestaurantName}`]?.duration || "N/A"}
+                                                                        </Text>
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                            {/* <Text style={styles.distanceText}>{distances[`${restaurant.name}-${restaurants[restaurantIndex + 1]?.name}`]?.distance || "N/A"}</Text>
+                                                            <Text style={styles.timeText}>{distances[`${restaurant.name}-${restaurants[restaurantIndex + 1]?.name}`]?.duration || "N/A"}</Text> */}
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            ))}
+
                                         </View>
                                     )}
                                 </View>
                             );
                         }}
                     />
+
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -237,11 +643,9 @@ const OptionButton = ({ title, Icon, isImage, onPress }) => (
             )}
             <Text style={styles.optionText}>{title}</Text>
         </View>
-        <TouchableOpacity activeOpacity={0.7}>
-            <Text style={{ color: '#4A0ADD', fontFamily: fontFamily.FONTS.Medium, fontSize: hp(1.7) }}>$200</Text>
-        </TouchableOpacity>
     </View>
 );
+
 
 
 const styles = StyleSheet.create({
@@ -336,7 +740,7 @@ const styles = StyleSheet.create({
         fontSize: hp(1.5)
     },
     budgetAmount: {
-        color: '#4A0ADD',
+        color: COLORS.RoyalBlue,
         fontFamily: fontFamily.FONTS.Medium,
         marginLeft: wp(2),
         fontSize: hp(1.8)
@@ -394,7 +798,29 @@ const styles = StyleSheet.create({
     placeContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: wp(3),
+        padding: wp(1.5),
+        borderRadius: wp(2),
+        marginVertical: hp(0.5),
+        backgroundColor: '#f5f5f5',
+    },
+    imageContainer: {
+        position: "relative",
+    },
+    badge: {
+        position: "absolute",
+        top: -5, // Adjust for positioning
+        left: -5, // Adjust for positioning
+        backgroundColor: COLORS.RoyalBlue,
+        width: wp(5.5),
+        height: wp(5.5),
+        borderRadius: wp(5.5),
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    badgeText: {
+        color: COLORS.white,
+        fontFamily: fontFamily.FONTS.bold,
+        fontSize: hp(1.5),
     },
     placeImage: {
         width: wp(15),
@@ -409,6 +835,8 @@ const styles = StyleSheet.create({
         fontSize: hp(2),
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.black,
+        paddingRight: wp(2.2),
+
     },
     placeCategory: {
         fontSize: hp(1.7),
@@ -418,9 +846,26 @@ const styles = StyleSheet.create({
     placePrice: {
         fontSize: hp(2),
         fontFamily: fontFamily.FONTS.bold,
-        color: '#4A0ADD',
+        color: COLORS.RoyalBlue,
     },
-
+    distanceContainer: {
+        flexDirection: "row",
+        alignItems: 'center',
+        marginTop: hp(0.5),
+        borderRadius: wp(2),
+    },
+    distanceText: {
+        fontSize: hp(1.5),
+        color: COLORS.darkgray,
+        paddingHorizontal: wp(3),
+        fontFamily: fontFamily.FONTS.Medium
+    },
+    timeText: {
+        fontSize: hp(1.5),
+        paddingHorizontal: wp(3),
+        color: COLORS.darkgray,
+        fontFamily: fontFamily.FONTS.Medium,
+    },
 });
 
 export default AiPlanTripDetails;

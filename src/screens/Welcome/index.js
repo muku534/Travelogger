@@ -15,7 +15,7 @@ import {
     heightPercentageToDP as hp,
     widthPercentageToDP as wp
 } from '../../components/Pixel/Index';
-import { COLORS } from '../../../constants';
+import { COLORS, Images } from '../../../constants';
 import fontFamily from '../../../constants/fontFamily';
 
 const WelcomeScreen = ({ navigation }) => {
@@ -52,7 +52,7 @@ const WelcomeScreen = ({ navigation }) => {
                 {/* Ensuring the background image fully covers the screen */}
                 <View style={{ flex: 1 }}>
                     <ImageBackground
-                        source={require('../../../assets/images/BG_Image.png')}
+                        source={Images.bgImage}
                         style={styles.background}
                         resizeMode="stretch"
                     >

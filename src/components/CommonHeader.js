@@ -1,0 +1,33 @@
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "./Pixel/Index";
+import { COLORS, fontFamily, Images, SVGS } from "../../constants";
+
+const CommonHeader = ({ title, navigation }) => {
+    return (
+        <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Ionicons name="arrow-back" size={wp(6)} color={COLORS.darkgray} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{title}</Text>
+        </View>
+    );
+};
+
+export default CommonHeader;
+
+const styles = StyleSheet.create({
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: wp(3),
+        paddingTop: hp(6),
+    },
+    headerTitle: {
+        fontSize: wp(5),
+        fontFamily: fontFamily.FONTS.bold,
+        color: COLORS.darkgray,
+        marginLeft: wp(3), // Spacing for back button
+    },
+});

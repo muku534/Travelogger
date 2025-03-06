@@ -2,25 +2,11 @@ import React, { useState, useRef } from 'react';
 import { View, StyleSheet, Animated, TouchableOpacity, Pressable } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS } from '../../constants';
+import { COLORS, fontFamily, SVGS } from '../../constants';
 import {
     heightPercentageToDP as hp,
     widthPercentageToDP as wp,
 } from '../components/Pixel/Index';
-// Import SVG Icons
-import HomeIcon from '../../assets/icons/Home.svg';
-import HomeActiveIcon from '../../assets/icons/Home_Active.svg';
-import ProfilIcon from '../../assets/icons/Profile_icon_deactive.svg';
-import ProfileActiveIcon from '../../assets/icons/Profile.svg';
-import AITripIcon from '../../assets/icons/AiTrip.svg';
-import AIIcon from '../../assets/icons/AI_icon_deactive.svg';
-import AIActiveIcon from '../../assets/icons/AI_icon.svg';
-import PlanTrip from '../../assets/icons/plan_trip.svg';
-import MyItineraryIcon from '../../assets/icons/Itinerary.svg';
-import MyItineraryActiveIcon from '../../assets/icons/Itinerary_Active.svg';
-import PlusIcon from '../../assets/icons/plus.svg';
-import CloseIcon from '../../assets/icons/Add.svg';
-import fontFamily from '../../constants/fontFamily';
 import LinearGradient from 'react-native-linear-gradient';
 import { AIIternary, Home, MyIternary, Profile } from '../screens';
 
@@ -71,7 +57,7 @@ const FloatingActionButton = () => {
                 {/* Button 2 */}
                 <Animated.View style={[styles.floatingButton, { transform: [{ translateY: button2TranslateY }] }]}>
                     <LinearGradient
-                        colors={["#5100E6", "#008075"]} // Gradient Colors
+                        colors={[COLORS.RoyalBlueViolet, COLORS.DeepTeal]} // Gradient Colors
                         start={{ x: 0, y: 0 }} // Left
                         end={{ x: 1, y: 0 }}   // Right
                         style={[styles.actionButton]}
@@ -84,7 +70,7 @@ const FloatingActionButton = () => {
                             }}
                             activeOpacity={0.7}
                         >
-                            <AITripIcon width={hp(3.5)} height={hp(3.5)} />
+                            <SVGS.AITRIPEICON width={hp(3.5)} height={hp(3.5)} />
                         </TouchableOpacity>
                     </LinearGradient>
                 </Animated.View>
@@ -100,7 +86,7 @@ const FloatingActionButton = () => {
                         }}
                         activeOpacity={0.7}
                     >
-                        <PlanTrip width={hp(3.5)} height={hp(3.5)} />
+                        <SVGS.PLANTRIP width={hp(3.5)} height={hp(3.5)} />
                     </TouchableOpacity>
                 </Animated.View>
 
@@ -113,9 +99,9 @@ const FloatingActionButton = () => {
                     ]}
                 >
                     {isOpen ? (
-                        <CloseIcon width={hp(6)} height={hp(6)} fill={COLORS.red} />
+                        <SVGS.CLOSEICON width={hp(6)} height={hp(6)} fill={COLORS.red} />
                     ) : (
-                        <PlusIcon width={hp(4)} height={hp(4)} fill={COLORS.white} />
+                        <SVGS.PLUSICON width={hp(4)} height={hp(4)} fill={COLORS.white} />
                     )}
                 </TouchableOpacity>
             </View>
@@ -151,8 +137,8 @@ const TabStack = () => {
                 options={{
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
-                        focused ? <HomeActiveIcon width={hp(3.3)} height={hp(3.3)} />
-                            : <HomeIcon width={hp(3.3)} height={hp(3.3)} />
+                        focused ? <SVGS.HOMEACTIVEICON width={hp(3.3)} height={hp(3.3)} />
+                            : <SVGS.HOMEICON width={hp(3.3)} height={hp(3.3)} />
                     ),
                     tabBarLabel: "Home",  // ✅ Show label
                 }}
@@ -164,8 +150,8 @@ const TabStack = () => {
                 options={{
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
-                        focused ? <MyItineraryActiveIcon width={hp(3.3)} height={hp(3.3)} />
-                            : <MyItineraryIcon width={hp(3.3)} height={hp(3.3)} />
+                        focused ? <SVGS.MYITINERARYACTIVEICON width={hp(3.3)} height={hp(3.3)} />
+                            : <SVGS.MYITINERARYICON width={hp(3.3)} height={hp(3.3)} />
                     ),
                     tabBarLabel: "My Itinerary",  // ✅ Show label
                 }}
@@ -173,7 +159,7 @@ const TabStack = () => {
 
             <Tab.Screen
                 name="Add"
-                component={() => null}
+                component={View}
                 options={{
                     tabBarButton: () => <FloatingActionButton />,
                 }}
@@ -185,8 +171,8 @@ const TabStack = () => {
                 options={{
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
-                        focused ? <AIActiveIcon width={hp(3.3)} height={hp(3.3)} />
-                            : <AIIcon width={hp(3.3)} height={hp(3.3)} />
+                        focused ? <SVGS.AIACTIVEICON width={hp(3.3)} height={hp(3.3)} />
+                            : <SVGS.AIICON width={hp(3.3)} height={hp(3.3)} />
                     ),
                     tabBarLabel: "AI Itinerary",  // ✅ Show label
                 }}
@@ -198,10 +184,10 @@ const TabStack = () => {
                 options={{
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
-                        focused ? <ProfileActiveIcon width={hp(3.3)} height={hp(3.3)} />
-                            : <ProfilIcon width={hp(3.3)} height={hp(3.3)} />
+                        focused ? <SVGS.PROFILEACTIVEICON width={hp(3.3)} height={hp(3.3)} />
+                            : <SVGS.PROFILE width={hp(3.3)} height={hp(3.3)} />
                     ),
-                    tabBarLabel: "Profile",  // ✅ Show label
+                    tabBarLabel: "Profile", 
                 }}
             />
         </Tab.Navigator>
@@ -214,7 +200,7 @@ export default TabStack;
 const styles = StyleSheet.create({
     tabBar: {
         position: 'absolute',
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         paddingBottom: hp(1), // Increase padding to prevent text cut-off
         paddingTop: hp(1),
         paddingHorizontal: wp(2),
@@ -238,7 +224,7 @@ const styles = StyleSheet.create({
         width: hp(6.5),
         height: hp(6.5),
         borderRadius: hp(6.5),
-        backgroundColor: '#EB4034',
+        backgroundColor: COLORS.red,
         justifyContent: 'center',
         alignItems: 'center',
     },

@@ -1,4 +1,4 @@
-import { createStore } from "redux";
+import { applyMiddleware, createStore } from "redux";
 import rootReducer from "./Reducer";
 
 const store = createStore(rootReducer);

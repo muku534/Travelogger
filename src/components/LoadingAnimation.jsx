@@ -5,6 +5,7 @@ import {
     heightPercentageToDP as hp,
     widthPercentageToDP as wp,
 } from './Pixel/Index';
+import COLORS from '../../constants/colors';
 
 const LoadingAnimation = () => {
     const spinValue = useRef(new Animated.Value(0)).current;
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: wp(20),
         borderWidth: wp(2),
-        borderColor: '#E3D6FF',
+        borderColor: COLORS.Lavender,
     },
     innerRing: {
         position: 'absolute',
@@ -70,9 +71,9 @@ const styles = StyleSheet.create({
         borderRadius: wp(20),
         borderWidth: wp(2),
         borderTopColor: 'transparent',
-        borderRightColor: '#5100E6',
-        borderBottomColor: '#5100E6',
-        borderLeftColor: '#5100E6',
+        borderRightColor: COLORS.RoyalBlueViolet,
+        borderBottomColor: COLORS.RoyalBlueViolet,
+        borderLeftColor: COLORS.RoyalBlueViolet,
     },
     iconContainer: {
         position: 'absolute',

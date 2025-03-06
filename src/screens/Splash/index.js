@@ -2,9 +2,14 @@ import React, { useEffect } from 'react';
 import { Image, SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
-import { COLORS, Images } from '../../../constants'; // Import centralized constants
+import { COLORS, Images } from '../../../constants';
 import { retrieveDataFromAsyncStorage } from '../../utils/Helper';
-import { loginUser } from '../../redux/Actions';
+import {
+    heightPercentageToDP as hp,
+    widthPercentageToDP as wp
+} from '../../components/Pixel/Index';
+import logger from '../../utils/logger'; // Structured logging
+import { LOGIN_SUCCESS } from '../../redux/Actions';
 
 const Splash = () => {
     const navigation = useNavigation();
@@ -15,37 +20,34 @@ const Splash = () => {
             const cachedUserData = await retrieveDataFromAsyncStorage('userData');
 
             if (cachedUserData && Object.keys(cachedUserData).length > 0) {
-                dispatch(loginUser(cachedUserData));
-                console.log('✅ Cached user data found:', cachedUserData);
+                dispatch({
+                    type: LOGIN_SUCCESS,
+                    payload: { userData: cachedUserData },
+                });
                 navigation.reset({ index: 0, routes: [{ name: 'TabStack' }] });
             } else {
-                console.log('⚠️ No user data found, redirecting to Welcome screen.');
+                logger.warn('No user data found, redirecting to Welcome screen.');
                 navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
             }
         } catch (error) {
-            console.error('❌ Error during user authentication:', error);
+            logger.error('Error during user authentication:', error);
             navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
         }
     };
 
-    // Effect to trigger user authentication
     useEffect(() => {
         const timer = setTimeout(() => {
             handleUserAuthentication();
-        }, 800); // Delay to show the splash screen animation
+        }, 800);
 
-        return () => clearTimeout(timer); // Clean up the timer
+        return () => clearTimeout(timer);
     }, []);
 
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar backgroundColor={COLORS.tertiaryWhite} barStyle="dark-content" />
             <View style={styles.logoContainer}>
-                <Image
-                    source={Images.travelLoggerLogo} // Use Images constant
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
+                <Image source={Images.travelLoggerLogo} style={styles.logo} resizeMode="contain" />
             </View>
         </SafeAreaView>
     );
@@ -61,8 +63,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     logoContainer: {
-        width: '80%',
-        height: '50%',
+        width: wp(80),
+        height: hp(50),
         justifyContent: 'center',
         alignItems: 'center',
     },

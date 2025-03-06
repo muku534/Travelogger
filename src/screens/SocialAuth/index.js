@@ -1,13 +1,17 @@
-import React from 'react';
-import { View, Text, Image, ImageBackground, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, StatusBar } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, Image, ImageBackground, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, StatusBar, Alert } from 'react-native';
 import {
     heightPercentageToDP as hp,
     widthPercentageToDP as wp,
 } from '../../components/Pixel/Index';
-import { COLORS } from '../../../constants';
+import { COLORS, ICONS, Images } from '../../../constants';
 import fontFamily from '../../../constants/fontFamily';
+import { useDispatch } from 'react-redux';
+import { signInWithGoogle } from '../../services/googleAuthService';
 
 const SocialAuth = ({ navigation }) => {
+    const dispatch = useDispatch();
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
@@ -15,40 +19,40 @@ const SocialAuth = ({ navigation }) => {
                 <View style={styles.container}>
                     {/* Background Image */}
                     <ImageBackground
-                        source={require('../../../assets/images/authentication_Image.png')}
+                        source={Images.authenticationImage}
                         style={styles.backgroundImage}
                     />
 
                     {/* Logo */}
                     <View style={styles.contentContainer}>
                         <Image
-                            source={require('../../../assets/images/travelogger_logo.png')}
+                            source={Images.travelLoggerLogo}
                             style={styles.logo}
                         />
 
                         {/* Google Signup Button */}
                         <TouchableOpacity
                             style={styles.signupButton}
-                            onPress={() => console.log("Signup with Google")}
+                            onPress={() => signInWithGoogle(navigation, dispatch)}
                         >
                             <Image
-                                source={require('../../../assets/icons/google.png')}
+                                source={ICONS.GOOGLE}
                                 style={styles.icon}
                             />
                             <Text style={styles.buttonText}>Signup with Google</Text>
                         </TouchableOpacity>
 
                         {/* Gmail Signup Button */}
-                        <TouchableOpacity
+                        {/* <TouchableOpacity
                             style={styles.signupButton}
                             onPress={() => navigation.navigate('Login')}
                         >
                             <Image
-                                source={require('../../../assets/icons/Gmail.png')}
+                                source={ICONS.GMAIL}
                                 style={styles.icon}
                             />
                             <Text style={styles.buttonText}>Signup with Gmail</Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
 
                         {/* Sign In Option */}
                         <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginVertical: hp(2) }}>
@@ -92,7 +96,7 @@ const styles = StyleSheet.create({
         width: wp(90),
         height: hp(7),
         borderRadius: wp(10),
-        marginBottom: hp(2),
+        marginVertical: hp(5),
         backgroundColor: COLORS.white,
         borderColor: COLORS.gray,
         borderWidth: 0.5,

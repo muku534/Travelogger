@@ -16,7 +16,14 @@ const COLORS = {
   darkgray1: '#5b5b5b',
   secondaryGray: '#959595',
   red: '#E60000',
-  pastelPurple:'#DAC6FF',
-  
+  pastelPurple: '#DAC6FF',
+  LavenderBlush: '#FEF2F2',
+  LightCoral: '#FFD1D1',
+  RoyalBlueViolet: '#5100E6',
+  DeepTeal: '#008075',
+  TiffanyBlue: '#14E6CF',
+  PaleBlue: '#D2E1E5',
+  RoyalBlue: '#4A0ADD',
+  Lavender: '#E3D6FF',
 };
 export default COLORS;

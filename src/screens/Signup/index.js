@@ -3,22 +3,26 @@ import {
     View, Text, TextInput, Image, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ScrollView, StatusBar, Alert
 } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from '../../components/Pixel/Index';
-import { COLORS } from '../../../constants';
+import { COLORS, fontFamily, Images } from '../../../constants';
 import Button from '../../components/Button';
-import fontFamily from '../../../constants/fontFamily';
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import { signUp } from '../../services/Api';
+import { signUp } from '../../services/authService';
+import { storeDataInAsyncStorage } from '../../utils/Helper';
+import { useDispatch } from 'react-redux';
+import { SIGNUP_SUCCESS } from '../../redux/Actions';
+import Toast from 'react-native-toast-message';
 
 const avatars = [
-    require('../../../assets/images/avatar1.png'),
-    require('../../../assets/images/avatar2.png'),
-    require('../../../assets/images/avatar3.png'),
-    require('../../../assets/images/avatar4.png'),
+    "https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Felix&backgroundColor=b6e3f4",
+    "https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Alex&backgroundColor=e0f7fa",
+    "https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Charlie&backgroundColor=f8c291",
+    "https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Jordan&backgroundColor=a29bfe",
 ];
 
 const SignUp = ({ navigation }) => {
+    const dispatch = useDispatch();
     const [form, setForm] = useState({
         name: '',
         email: '',
@@ -31,47 +35,65 @@ const SignUp = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
 
     const handleChange = (key, value) => {
-        console.log(`Updating ${key}:`, value); // Debugging log
         setForm(prevState => ({ ...prevState, [key]: value }));
     };
 
-    const handleSignUp = async () => {
+    const handleSignup = async () => {
         const { name, email, password, confirmPassword, selectedAvatar } = form;
 
-        console.log("Submitting SignUp form with data:", form); // Debugging log
+        if (!name || !email || !password || !confirmPassword || !selectedAvatar) {
+            Toast.show({
+                type: 'error',
+                text1: 'Missing Fields',
+                text2: 'Please fill in all fields before signing up.',
+                position: 'top'
+            });
+            return;
+        }
 
-        if (!name || !email || !password || !confirmPassword) {
-            Alert.alert('Error', 'All fields are required');
-            console.log("Error: Missing required fields.");
-            return;
-        }
         if (password !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match');
-            console.log("Error: Passwords do not match.");
-            return;
-        }
-        if (!selectedAvatar) {
-            Alert.alert('Error', 'Please select an avatar');
-            console.log("Error: Avatar not selected.");
+            Toast.show({
+                type: 'error',
+                text1: 'Password Mismatch',
+                text2: 'Passwords do not match!',
+                position: 'top'
+            });
             return;
         }
 
         setLoading(true);
         try {
-            console.log("Sending sign-up request to API...");
-            const userData = { name, email, password, avatarImgUrl: selectedAvatar };
+            const userData = {
+                name, email, password, avatarImgUrl: selectedAvatar, createdBy: "Travelogger"
+            };
             const response = await signUp(userData);
-            console.log("API Response:", response); // Debugging log
 
-            Alert.alert('Success', 'Account created successfully!');
-            navigation.navigate('Login');
+            await storeDataInAsyncStorage("userData", response)
+
+            dispatch({
+                type: SIGNUP_SUCCESS,
+                payload: { userData: response }
+            });
+            Toast.show({
+                type: 'success',
+                text1: 'Account Created',
+                text2: 'Your account has been successfully created.',
+                position: 'top'
+            });
+
+            navigation.reset({ index: 0, routes: [{ name: 'TabStack' }] });
         } catch (error) {
-            console.error("Signup Error:", error); // Debugging log
-            Alert.alert('Error', error.message || 'Signup failed');
+            console.log('Signup Error:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Signup Failed',
+                text2: error.message || 'Something went wrong.',
+                position: 'top'
+            });
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -132,22 +154,22 @@ const SignUp = ({ navigation }) => {
                     <FlatList
                         data={avatars}
                         horizontal
-                        showsHorizontalScrollIndicator={false}
-                        keyExtractor={(_, index) => index.toString()}
+                        keyExtractor={(item, index) => index.toString()}
                         renderItem={({ item }) => (
                             <TouchableOpacity onPress={() => handleChange('selectedAvatar', item)} style={styles.avatarWrapper}>
-                                <Image source={item} style={[styles.avatar, form.selectedAvatar === item && styles.selectedAvatar]} />
+                                <Image source={{ uri: item?.replace("/svg?", "/png?") }} style={[styles.avatar, form.selectedAvatar === item && styles.selectedAvatar]} />
                             </TouchableOpacity>
                         )}
                     />
+
 
                     {/* Create Account Button */}
                     <Button
                         title="Create Account"
                         color={COLORS.red}
-                        onPress={() => navigation.navigate("CreatePassword")}
+                        onPress={handleSignup}
                         disabled={loading}
-                        style={styles.createAccountButton}
+                        loading={loading}
                     />
 
                     {/* Bottom Login Navigation */}
@@ -233,6 +255,7 @@ const styles = StyleSheet.create({
     },
     avatarWrapper: {
         marginRight: wp(3),
+        marginBottom: hp(3),
         borderRadius: wp(3),
     },
     avatar: {
@@ -243,14 +266,6 @@ const styles = StyleSheet.create({
     selectedAvatar: {
         borderWidth: 2,
         borderColor: COLORS.red,
-    },
-    createAccountButton: {
-        width: wp(90),
-        alignSelf: 'center',
-        borderRadius: wp(3),
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginVertical: hp(4),
     },
     bottomContainer: {
         flexDirection: 'row',

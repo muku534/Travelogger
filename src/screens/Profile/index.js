@@ -1,29 +1,119 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView, StatusBar, ScrollView } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView, StatusBar, ScrollView, Alert, Linking } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from '../../components/Pixel/Index';
-import { COLORS } from '../../../constants';
-import EditProfile from '../../../assets/icons/Edit_Profile.svg';
-import Email from '../../../assets/icons/email.svg';
-import Password from '../../../assets/icons/Changepassword_icon.svg';
-import Notification from '../../../assets/icons/Notification_Settings.svg';
-import Privacy from '../../../assets/icons/Privacy_policy.svg';
-import Terms from '../../../assets/icons/Terms.svg';
-import Contact from '../../../assets/icons/Contact.svg';
-import Youtube from '../../../assets/icons/youtube_icon_active.svg';
-import Facebook from '../../../assets/icons/facebook_icon_active.svg';
-import Delete from '../../../assets/icons/delete_icon.svg';
-import Logout from '../../../assets/icons/logout_icon.svg';
+import { COLORS, SVGS } from '../../../constants';
 import fontFamily from '../../../constants/fontFamily';
+import { useDispatch, useSelector } from 'react-redux';
+import { deleteAccount, getProfile } from '../../services/authService';
+import { FETCH_PROFILE } from '../../redux/Actions';
+import logger from '../../utils/logger';
+import { storeDataInAsyncStorage } from '../../utils/Helper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from "react-native-toast-message";
 
 const Profile = ({ navigation }) => {
+    const dispatch = useDispatch();
+    const userData = useSelector(state => state.userData);
+    console.log("this is the user data", userData)
+
+    const openSocialLink = (url) => {
+        if (url) {
+            Linking.openURL(url).catch(err => console.error("Failed to open URL:", err));
+        } else {
+            Toast.show({
+                type: "error",
+                text1: "Invalid URL",
+                text2: "The social media link is not available.",
+            });
+        }
+    };
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const profileData = await getProfile(userData.userId);
+
+                if (profileData) {
+                    dispatch({
+                        type: FETCH_PROFILE,
+                        payload: { userData: profileData },
+                    });
+                    console.log("Profile Data:", profileData);
+                    await storeDataInAsyncStorage("userData", profileData)
+                } else {
+                    logger.error("Invalid Profile Data:", profileData);
+                }
+            } catch (error) {
+                logger.error("Profile Fetch Error:", error);
+            }
+        };
+
+        fetchProfile();
+    }, []);
+
     // Function to Handle Navigation
     const handleNavigation = (screen) => {
         if (screen) {
             navigation.navigate(screen);
         }
     };
+
+    const handleDeleteAccount = async () => {
+        Alert.alert(
+            "Delete Account",
+            "Are you sure you want to delete your account? This action cannot be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await deleteAccount(userData?.userId); // Call API to delete user
+                            await AsyncStorage.removeItem('userData'); // Clear stored user data
+
+                            Toast.show({
+                                type: "success",
+                                text1: "Account Deleted",
+                                text2: "Your account has been successfully deleted.",
+                            });
+
+                            navigation.reset({ index: 0, routes: [{ name: 'Login' }] }); // Navigate to Login
+                        } catch (error) {
+                            console.error("Delete Account Error:", error);
+                            Toast.show({
+                                type: "error",
+                                text1: "Deletion Failed",
+                                text2: "Unable to delete account. Please try again.",
+                            });
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleLogout = async () => {
+        try {
+            await AsyncStorage.removeItem('userData'); // Clear stored user data
+            navigation.reset({ index: 0, routes: [{ name: 'Login' }] }); // Navigate to Login
+        } catch (error) {
+            logger.error("Logout Error:", error);
+        }
+    };
+
+    // Menu Items with Navigation Screens
+    const menuItems = [
+        { label: 'Edit Profile', icon: <SVGS.EDIT_PROFILE width={hp(3.3)} height={hp(3)} />, screen: 'EditProfile' },
+        { label: 'Change Password', icon: <SVGS.PASSWORD width={hp(3.3)} height={hp(3)} />, screen: 'ChangePassword' },
+        { label: 'Notification Settings', icon: <SVGS.NOTIFICATION width={hp(3.3)} height={hp(3)} />, screen: '' },
+        { label: 'Privacy Policy', icon: <SVGS.PRIVACY width={hp(3.3)} height={hp(3)} />, screen: 'Privacy' },
+        { label: 'Terms and Conditions', icon: <SVGS.TERMS width={hp(3.3)} height={hp(3)} />, screen: 'Terms' },
+        { label: 'Contact Us', icon: <SVGS.CONTACT width={hp(3.3)} height={hp(3)} />, screen: '' },
+        { label: 'Delete Account', icon: <SVGS.DELETE_ACCOUNT width={hp(3.3)} height={hp(3)} />, action: handleDeleteAccount },
+        { label: 'Logout', icon: <SVGS.LOGOUT width={hp(3.3)} height={hp(3)} />, action: handleLogout },
+    ];
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
@@ -35,22 +125,77 @@ const Profile = ({ navigation }) => {
 
                     {/* Profile Info */}
                     <View style={styles.profileContainer}>
-                        <Image source={require('../../../assets/images/avatar1.png')} style={styles.avatar} />
-                        <Text style={styles.name}>Yeswanth</Text>
+                        {/* <Image source={{ uri: userData?.avatarImgUrl }} style={styles.avatar} /> */}
+                        <Image source={{ uri: userData?.avatarImgUrl.replace("/svg?", "/png?") }} style={styles.avatar} />
+                        <Text style={styles.name}>{userData?.name}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', }}>
-                            <Email width={hp(2.3)} height={hp(2.3)} />
-                            <Text style={styles.email}>ui@colourmoon.com</Text>
+                            <SVGS.EMAIL width={hp(2.3)} height={hp(2.3)} />
+                            <Text style={styles.email}>{userData?.email}</Text>
                         </View>
+
+                        {/* Display Bio if Available */}
+                        {userData?.bio && userData.bio.trim().length > 0 && (
+                            <Text style={styles.bio} numberOfLines={1}>{userData.bio}</Text>
+                        )}
 
                         {/* Social Icons */}
                         <View style={styles.socialIcons}>
-                            <TouchableOpacity style={[styles.socialIcon, styles.youtubeIcon]}>
-                                <Youtube width={hp(4)} height={hp(4)} />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.socialIcon, styles.facebookIcon]}>
-                                <Facebook width={hp(4)} height={hp(4)} />
-                            </TouchableOpacity>
+                            {userData?.socialMedia?.youtube && (
+                                <TouchableOpacity
+                                    style={styles.socialIcon}
+                                    onPress={() => openSocialLink(userData.socialMedia.youtube)}
+                                >
+                                    <SVGS.YOUTUBE width={hp(4)} height={hp(4)} />
+                                </TouchableOpacity>
+                            )}
+
+                            {userData?.socialMedia?.facebook && (
+                                <TouchableOpacity
+                                    style={styles.socialIcon}
+                                    onPress={() => openSocialLink(userData.socialMedia.facebook)}
+                                >
+                                    <SVGS.FACEBOOK width={hp(3.9)} height={hp(3.9)} />
+                                </TouchableOpacity>
+                            )}
+
+                            {userData?.socialMedia?.instagram && (
+                                <TouchableOpacity
+                                    style={styles.socialIcon}
+                                    onPress={() => openSocialLink(userData.socialMedia.instagram)}
+                                >
+                                    <SVGS.INSTAGRAM width={hp(3)} height={hp(3)} />
+                                </TouchableOpacity>
+                            )}
+
+                            {userData?.socialMedia?.linkedin && (
+                                <TouchableOpacity
+                                    style={styles.socialIcon}
+                                    onPress={() => openSocialLink(userData.socialMedia.linkedin)}
+                                >
+                                    <SVGS.LINKEDIN width={hp(3)} height={hp(3)} />
+                                </TouchableOpacity>
+                            )}
+
+                            {userData?.socialMedia?.twitter && (
+                                <TouchableOpacity
+                                    style={styles.socialIcon}
+                                    onPress={() => openSocialLink(userData.socialMedia.twitter)}
+                                >
+                                    <SVGS.TWITTER width={hp(3)} height={hp(3)} />
+                                </TouchableOpacity>
+                            )}
+
+                            {userData?.website && (
+                                <TouchableOpacity
+                                    style={styles.socialIcon}
+                                    onPress={() => openSocialLink(userData.website)}
+                                >
+                                    <Ionicons name="globe-outline" size={hp(3.5)} color={COLORS.darkgray} />
+                                </TouchableOpacity>
+                            )}
+
                         </View>
+
                     </View>
 
                     {/* Menu List */}
@@ -59,7 +204,7 @@ const Profile = ({ navigation }) => {
                             <TouchableOpacity
                                 key={index}
                                 style={styles.menuItem}
-                                onPress={() => handleNavigation(item.screen)}
+                                onPress={() => item.action ? item.action() : handleNavigation(item.screen)}
                             >
                                 <View style={styles.menuLeft}>
                                     {item.icon}
@@ -81,34 +226,30 @@ const Profile = ({ navigation }) => {
     );
 };
 
-// Menu Items with Navigation Screens
-const menuItems = [
-    { label: 'Edit Profile', icon: <EditProfile width={hp(3.3)} height={hp(3)} />, screen: 'EditProfile' },
-    { label: 'Change Password', icon: <Password width={hp(3.3)} height={hp(3)} />, screen: 'ChangePassword' },
-    { label: 'Notification Settings', icon: <Notification width={hp(3.3)} height={hp(3)} />, screen: '' },
-    { label: 'Privacy Policy', icon: <Privacy width={hp(3.3)} height={hp(3)} />, screen: 'Privacy' },
-    { label: 'Terms and Conditions', icon: <Terms width={hp(3.3)} height={hp(3)} />, screen: 'Terms' },
-    { label: 'Contact Us', icon: <Contact width={hp(3.3)} height={hp(3)} />, screen: '' },
-    { label: 'Delete Account', icon: <Delete width={hp(3.3)} height={hp(3)} />, screen: '' },
-    { label: 'Logout', icon: <Logout width={hp(3.3)} height={hp(3)} />, screen: '' },
-];
+
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.white },
     header: { height: hp(16), backgroundColor: '#FFEAEA' },
+    bio: {
+        fontSize: hp(1.9),
+        color: COLORS.darkgray,
+        fontFamily: fontFamily.FONTS.Medium,
+        textAlign: 'center',
+        marginVertical: hp(0.5),
+        marginHorizontal: wp(5),
+    },
     profileContainer: { alignItems: 'center', marginTop: -hp(7) },
     avatar: { width: hp(15), height: hp(15), borderRadius: hp(15) },
     name: { fontSize: hp(2.5), color: COLORS.darkgray, fontFamily: fontFamily.FONTS.bold, marginTop: hp(1) },
     email: { fontSize: hp(1.8), color: COLORS.darkgray, marginHorizontal: hp(0.5) },
     socialIcons: {
         flexDirection: 'row',
-        marginTop: hp(1),
         alignItems: 'center',
         justifyContent: 'center',
+        marginHorizontal: wp(2),
     },
     socialIcon: {
-        width: hp(4), // Ensures circular shape
-        height: hp(4),
         borderRadius: hp(4),
         alignItems: 'center',
         justifyContent: 'center',

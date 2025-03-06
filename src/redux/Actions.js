@@ -1,67 +1,32 @@
 // Authentication/Account Management
-export const LOGIN = 'LOGIN';
-export const SIGNUP = 'SIGNUP';
-export const LOGOUT = 'LOGOUT';
-export const UPDATE_PROFILE = 'UPDATE_PROFILE';
+export const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
+export const SIGNUP_SUCCESS = 'SIGNUP_SUCCESS';
 export const FORGOT_PASSWORD = 'FORGOT_PASSWORD';
 export const RESET_PASSWORD = 'RESET_PASSWORD';
+export const FETCH_PROFILE = 'FETCH_PROFILE';
+export const UPDATE_PROFILE = 'UPDATE_PROFILE';
+export const LOGOUT = 'LOGOUT';
 
-// Product Management
-export const FETCH_PRODUCTS = 'FETCH_PRODUCTS';
-export const SEARCH_PRODUCTS = 'SEARCH_PRODUCTS';
-export const FILTER_PRODUCTS = 'FILTER_PRODUCTS';
-export const FETCH_PRODUCT_DETAILS = 'FETCH_PRODUCT_DETAILS';
+// Temporary Itinerary Actions
+export const SET_TRIP_DETAILS = 'SET_TRIP_DETAILS';
+export const ADD_TRIP_DAY_ITEM = 'ADD_TRIP_DAY_ITEM';
+export const DELETE_TRIP_DAY_ITEM = 'DELETE_TRIP_DAY_ITEM';
 
-// User Activity
-export const RECENTLY_VIEWED = 'RECENTLY_VIEWED';
-export const REMOVE_RECENTLY_VIEWED = 'REMOVE_RECENTLY_VIEWED';
-
-// Cart Management
-export const ADD_TO_CART = 'ADD_TO_CART';
-export const FETCH_CART_DATA = 'FETCH_CART_DATA';
-export const REMOVE_FROM_CART = 'REMOVE_FROM_CART';
-export const UPDATE_CART_QUANTITY = 'UPDATE_CART_QUANTITY';
-export const CLEAR_CART = 'CLEAR_CART';
-
-// Wishlist Management
-export const ADD_TO_WISHLIST = 'ADD_TO_WISHLIST';
-export const FETCH_WISHLIST_DATA = 'FETCH_WISHLIST_DATA';
-export const REMOVE_FROM_WISHLIST = 'REMOVE_FROM_WISHLIST';
-
-// Order Management
-export const PLACE_ORDER = 'PLACE_ORDER';
-export const FETCH_ORDERS = 'FETCH_ORDERS';
-export const CANCEL_ORDER = 'CANCEL_ORDER';
-export const TRACK_ORDER = 'TRACK_ORDER';
-
-// Error Handling
-export const SET_ERROR = 'SET_ERROR';
-export const CLEAR_ERROR = 'CLEAR_ERROR';
-
-// General State Management
-export const SET_LOADING = 'SET_LOADING';
-export const CLEAR_LOADING = 'CLEAR_LOADING';
-
-export const SET_THEME = 'SET_THEME';
+//Itineraries
+export const FETCH_ITINERARIES = 'FETCH_ITINERARIES';
+export const DELETE_ITINERARY = "DELETE_ITINERARY";
+export const CREATE_ITINERARY = "CREATE_ITINERARY";
+export const UPDATE_ITINERARY = "UPDATE_ITINERARY";
 
 // Authentication/Account Management
 export const signup = (userData) => ({
-    type: SIGNUP,
+    type: SIGNUP_SUCCESS,
     payload: { userData },
 });
 
 export const loginUser = (userData) => ({
-    type: LOGIN,
+    type: LOGIN_SUCCESS,
     payload: { userData },
-});
-
-export const logout = () => ({
-    type: LOGOUT,
-});
-
-export const updateProfile = (updatedData) => ({
-    type: UPDATE_PROFILE,
-    payload: { updatedData },
 });
 
 export const forgotPassword = (email) => ({
@@ -74,120 +39,49 @@ export const resetPassword = (token, newPassword) => ({
     payload: { token, newPassword },
 });
 
-// Product Management
-export const fetchProducts = (products) => ({
-    type: FETCH_PRODUCTS,
-    payload: { products },
+export const fetchProfile = (userData) => ({
+    type: FETCH_PROFILE,
+    payload: { userData }
+})
+
+export const updateProfile = (updatedData) => ({
+    type: UPDATE_PROFILE,
+    payload: { updatedData },
 });
 
-export const searchProducts = (searchQuery) => ({
-    type: SEARCH_PRODUCTS,
-    payload: { searchQuery },
+export const logout = () => ({
+    type: LOGOUT,
 });
 
-export const filterProducts = (filterCriteria) => ({
-    type: FILTER_PRODUCTS,
-    payload: { filterCriteria },
+
+// Temporary Itinerary Actions
+export const setTripDetails = (tripDetails) => ({
+    type: SET_TRIP_DETAILS,
+    payload: { tripDetails },
 });
 
-export const fetchProductDetails = (productId) => ({
-    type: FETCH_PRODUCT_DETAILS,
-    payload: { productId },
+export const addTripDayItem = (dayIndex, item) => ({
+    type: ADD_TRIP_DAY_ITEM,
+    payload: { dayIndex, item },
 });
 
-// User Activity
-export const fetchRecentView = (recentlyViewed) => ({
-    type: RECENTLY_VIEWED,
-    payload: { recentlyViewed },
+export const deleteTripDayItem = () => ({
+    type: DELETE_TRIP_DAY_ITEM,
 });
 
-export const removeRecentlyViewed = (productId) => ({
-    type: REMOVE_RECENTLY_VIEWED,
-    payload: { productId },
-});
+// Itineraries
 
-// Cart Management
-export const addToCart = (cartsData) => ({
-    type: ADD_TO_CART,
-    payload: { cartsData }, // Send the entire updated cart data
-});
+export const createItineraries = (newItinerary) => ({
+    type: CREATE_ITINERARY,
+    payload: { newItinerary }
+})
 
-export const fetchCartsData = (cartsData) => ({
-    type: FETCH_CART_DATA,
-    payload: { cartsData },
-});
+export const getItineraries = (Itineraries) => ({
+    type: FETCH_ITINERARIES,
+    payload: { Itineraries }
+})
 
-export const removeFromCart = (productId) => ({
-    type: REMOVE_FROM_CART,
-    payload: { productId },
-});
-
-export const updateCartQuantity = (productId, quantity) => ({
-    type: UPDATE_CART_QUANTITY,
-    payload: { productId, quantity },
-});
-
-export const clearCart = () => ({
-    type: CLEAR_CART,
-});
-
-// Wishlist Management
-export const addToWishlist = (product) => ({
-    type: ADD_TO_WISHLIST,
-    payload: { product },
-});
-
-export const fetchWishlistData = (wishlistData) => ({
-    type: FETCH_WISHLIST_DATA,
-    payload: { wishlistData },
-});
-
-export const removeFromWishlist = (productId) => ({
-    type: REMOVE_FROM_WISHLIST,
-    payload: { productId },
-});
-
-// Order Management
-export const placeOrder = (order) => ({
-    type: PLACE_ORDER,
-    payload: { order },
-});
-
-export const fetchOrders = (ordersData) => ({
-    type: FETCH_ORDERS,
-    payload: { ordersData },
-});
-
-export const cancelOrder = (orderId) => ({
-    type: CANCEL_ORDER,
-    payload: { orderId },
-});
-
-export const trackOrder = (trackingNumber) => ({
-    type: TRACK_ORDER,
-    payload: { trackingNumber },
-});
-
-// Error Handling
-export const setError = (error) => ({
-    type: SET_ERROR,
-    payload: { error },
-});
-
-export const clearError = () => ({
-    type: CLEAR_ERROR,
-});
-
-// General State Management
-export const setLoading = () => ({
-    type: SET_LOADING,
-});
-
-export const clearLoading = () => ({
-    type: CLEAR_LOADING,
-});
-
-export const setTheme = (theme) => ({
-    type: SET_THEME,
-    payload: theme,
+export const deleteItinerary = (itineraryId) => ({
+    type: DELETE_ITINERARY,
+    payload: itineraryId,
 });

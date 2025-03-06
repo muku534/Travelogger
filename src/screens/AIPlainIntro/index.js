@@ -3,25 +3,23 @@ import { View, Text, TouchableOpacity, ImageBackground, SafeAreaView, StatusBar,
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from '../../components/Pixel/Index';
-import { COLORS } from '../../../constants';
-import OptionsSVG from '../../../assets/icons/Personalized.svg';
-import BulbSVG from '../../../assets/icons/Smart.svg';
-import FlashSVG from '../../../assets/icons/Instant.svg';
-import fontFamily from '../../../constants/fontFamily';
+import { COLORS, fontFamily, Images, SVGS } from '../../../constants';
+
 
 const AIPlainIntro = ({ navigation }) => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <ImageBackground
-        source={require('../../../assets/images/aibg.png')}
+        source={Images.aibg}
+        resizeMode="cover"
         style={styles.background}
       >
 
         <View style={styles.container}>
           {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={wp(8)} color="white" />
+            <Ionicons name="arrow-back" size={wp(8)} color={COLORS.white} />
           </TouchableOpacity>
 
           {/* Heading */}
@@ -55,7 +53,7 @@ const AIPlainIntro = ({ navigation }) => {
         {/* Custom Gradient Button (Placed at Bottom) */}
         <TouchableOpacity onPress={() => navigation.navigate("AIPlainTrip")} activeOpacity={0.8} style={styles.buttonContainer}>
           <LinearGradient
-            colors={["#5100E6", "#008075"]}
+            colors={[COLORS.RoyalBlueViolet, COLORS.DeepTeal]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.button}
@@ -74,17 +72,17 @@ export default AIPlainIntro;
 // Features Data
 const features = [
   {
-    icon: <OptionsSVG width={wp(11)} height={wp(11)} />,
+    icon: <SVGS.OPTIONS width={wp(11)} height={wp(11)} />,
     title: 'Personalized Planning',
     description: 'Let our Advanced AI create personalized travel itineraries tailored to your interests and preferences.',
   },
   {
-    icon: <BulbSVG width={wp(11)} height={wp(11)} />,
+    icon: <SVGS.BULB width={wp(11)} height={wp(11)} />,
     title: 'Smart Suggestions',
     description: 'Discover hidden gems and local favorites at your destination.',
   },
   {
-    icon: <FlashSVG width={wp(11)} height={wp(11)} />,
+    icon: <SVGS.FLASH width={wp(11)} height={wp(11)} />,
     title: 'Instant Itineraries',
     description: 'Generate complete travel plans in seconds.',
   },
@@ -110,21 +108,22 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: hp(8), // Adjusted top margin
-    fontSize: wp(6.5),
+    fontSize: hp(2.8),
     lineHeight: wp(9),
     fontFamily: fontFamily.FONTS.bold,
-    color: '#14E6CF',
+    color: COLORS.TiffanyBlue,
     marginBottom: hp(1),
     paddingLeft: wp(2), // Adjusted left padding
   },
   highlight: {
     fontFamily: fontFamily.FONTS.bold,
-    color: '#14E6CF',
+    color: COLORS.TiffanyBlue,
   },
   subtitle: {
-    fontSize: wp(3.5),
-    lineHeight: wp(6.5),
+    fontSize: hp(1.6),
+    lineHeight: hp(2.5),
     color: COLORS.white,
+    fontFamily: fontFamily.FONTS.Medium,
     marginBottom: hp(3),
     paddingLeft: wp(2), // Matching left alignment
   },
@@ -139,15 +138,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   featureTitle: {
-    fontSize: wp(4.5),
+    fontSize: hp(2),
     fontFamily: fontFamily.FONTS.bold,
     paddingBottom: hp(0.7),
     lineHeight: wp(6),
     color: COLORS.white,
   },
   featureDescription: {
-    lineHeight: wp(5),
-    fontSize: wp(3.5),
+    lineHeight: hp(2.5),
+    fontSize: hp(1.5),
+    fontFamily: fontFamily.FONTS.Medium,
     color: COLORS.secondaryWhite,
   },
   buttonContainer: {
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: COLORS.white,
-    fontSize: wp(4.5),
+    fontSize: hp(2),
     fontFamily: fontFamily.FONTS.Medium,
   },
 });

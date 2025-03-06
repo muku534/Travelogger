@@ -13,7 +13,6 @@ import PlanTripDetails from './PlanTripDetails/index.js';
 import AIIternary from './Aliternary/index.js';
 import AIPlainIntro from './AIPlainIntro/index.js';
 import AIPlainTrip from './AIPlanTrip/index.js';
-import LoadingScreen from './LoadingScreen/index.js';
 import AIPlaintripDetails from './AiPlanTripDetails/index.js';
 import Search from './SearchScreen/index.js';
 import Profile from './Profile/index.js';
@@ -37,7 +36,6 @@ export {
     PlanTripDetails,
     AIPlainIntro,
     AIPlainTrip,
-    LoadingScreen,
     AIPlaintripDetails,
     Search,
     AIIternary,

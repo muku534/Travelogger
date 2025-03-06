@@ -1,25 +1,21 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, StatusBar, SafeAreaView } from 'react-native';
-import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
-import { COLORS } from '../../../constants';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../Pixel/Index";
+import { COLORS, fontFamily, SVGS } from '../../../constants';
 import { useNavigation } from '@react-navigation/native';
-import Share from '../../../assets/icons/location.svg';
-import Suit from '../../../assets/icons/accomodations_icon.svg';
-import Magic from '../../../assets/icons/photos_icon.svg';
-import fontFamily from '../../../constants/fontFamily';
 import LinearGradient from 'react-native-linear-gradient';
-import LoadingAnimation from '../../components/LoadingAnimation';
+import LoadingAnimation from '../LoadingAnimation';
 
 const LoadingScreen = () => {
-    const navigation = useNavigation();
-    useEffect(() => {
-        // Navigate to AiPlanTripDetails after 1 second
-        const timer = setTimeout(() => {
-            navigation.replace('AiPlanTripDetails'); // Use replace to prevent going back
-        }, 1000);
+    // const navigation = useNavigation();
+    // useEffect(() => {
+    //     // Navigate to AiPlanTripDetails after 1 second
+    //     const timer = setTimeout(() => {
+    //         navigation.replace('AiPlanTripDetails'); // Use replace to prevent going back
+    //     }, 1000);
 
-        return () => clearTimeout(timer); // Cleanup on unmount
-    }, []);
+    //     return () => clearTimeout(timer); // Cleanup on unmount
+    // }, []);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
@@ -35,9 +31,9 @@ const LoadingScreen = () => {
 
                     {/* Loading Steps */}
                     <View style={styles.stepsContainer}>
-                        <LoadingStep IconComponent={Share} text="Finding the Best Locations..." />
-                        <LoadingStep IconComponent={Suit} text="Selecting the Preferred Accommodations..." />
-                        <LoadingStep IconComponent={Magic} text="Gathering Destination Photos..." />
+                        <LoadingStep IconComponent={SVGS.SHARESTEP} text="Finding the Best Locations..." />
+                        <LoadingStep IconComponent={SVGS.SUIT} text="Selecting the Preferred Accommodations..." />
+                        <LoadingStep IconComponent={SVGS.MAGIC} text="Gathering Destination Photos..." />
                     </View>
                 </View>
             </View>
@@ -49,7 +45,7 @@ const LoadingScreen = () => {
 const LoadingStep = ({ IconComponent, text }) => (
     <View style={styles.step}>
         <LinearGradient
-            colors={['#5100E6', '#008075']}
+            colors={[COLORS.RoyalBlueViolet, COLORS.DeepTeal]}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={{ borderRadius: wp(2), padding: wp(1) }}

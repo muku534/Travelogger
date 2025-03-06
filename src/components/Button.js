@@ -7,19 +7,15 @@ import {
 import { COLORS } from '../../constants';
 import fontFamily from '../../constants/fontFamily';
 
-const Button = ({ title, onPress, color, disabled, loading, style }) => {
+const Button = ({ title, onPress, disabled, loading }) => {
     return (
         <TouchableOpacity
-            style={[
-                styles.button,
-                { backgroundColor: disabled ? COLORS.gray : color || COLORS.primary },
-                style
-            ]}
+            style={styles.button}
             onPress={onPress}
             disabled={disabled || loading}
         >
             {loading ? (
-                <ActivityIndicator color={COLORS.white} size="small" />
+                <ActivityIndicator color={COLORS.white} size="large" />
             ) : (
                 <Text style={styles.buttonText}>{title}</Text>
             )}
@@ -35,6 +31,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: wp(5),
+        backgroundColor: COLORS.red,
     },
     buttonText: {
         fontSize: hp(2.2),

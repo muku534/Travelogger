@@ -1,117 +1,177 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Image, ImageBackground, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, StatusBar } from 'react-native';
+import { View, Text, TextInput, ImageBackground, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, StatusBar, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import {
     heightPercentageToDP as hp,
     widthPercentageToDP as wp,
 } from '../../components/Pixel/Index';
-import { COLORS } from '../../../constants';
+import { COLORS, Images, SVGS } from '../../../constants';
 import Button from '../../components/Button';
 import fontFamily from '../../../constants/fontFamily';
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
 import MaterialIcons from "react-native-vector-icons/MaterialIcons"
-import Email from '../../../assets/icons/email.svg';
-import Password from '../../../assets/icons/password.svg';
+import { useDispatch } from 'react-redux';
+import { login } from '../../services/authService';
+import { storeDataInAsyncStorage } from '../../utils/Helper';
+import { LOGIN_SUCCESS } from '../../redux/Actions';
+import Toast from 'react-native-toast-message';
 
 const Login = ({ navigation }) => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const dispatch = useDispatch(); // Initialize dispatch
+    const [form, setForm] = useState({
+        email: '',
+        password: '',
+    });
     const [isPasswordShown, setIsPasswordShown] = useState(true);
     const [loading, setLoading] = useState(false);
+
+    const handleChange = (key, value) => {
+        setForm(prevState => ({ ...prevState, [key]: value }));
+    };
+
+    const handleLogin = async () => {
+        const { email, password } = form;
+
+        // Check if email or password is empty
+        if (!email || !password) {
+            Toast.show({
+                type: 'error',
+                text1: 'Login Failed',
+                text2: 'Please fill in both email and password.',
+                position: 'top'
+            });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            // Call the login API
+            const response = await login(email, password);
+
+            await storeDataInAsyncStorage("userData", response)
+            // Dispatch the login success action to update Redux state
+            dispatch({
+                type: LOGIN_SUCCESS,
+                payload: { userData: response },
+            });
+
+            Toast.show({
+                type: 'success',
+                text1: 'Login Successful',
+                text2: 'Welcome back to Travelogger!',
+                position: 'top'
+            });
+
+            // Navigate to the home or dashboard screen
+            navigation.reset({ index: 0, routes: [{ name: 'TabStack' }] });
+        } catch (error) {
+            Toast.show({
+                type: 'error',
+                text1: 'Login Failed',
+                text2: error.message || "Something went wrong.",
+                position: 'top'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.container}>
-                    {/* Background Image */}
-                    <ImageBackground
-                        source={require('../../../assets/images/login_title.png')}
-                        style={styles.backgroundImage}
-                        resizeMode="cover"
-                    >
-                        <View style={styles.textContainer}>
-                            <Text style={styles.headerText}>
-                                Join with us, <Text style={styles.brandText}>Travelogger</Text>
-                            </Text>
-                        </View>
-                    </ImageBackground>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+                <ScrollView showsVerticalScrollIndicator={false}>
+                    <View style={styles.container}>
+                        {/* Background Image */}
+                        <ImageBackground
+                            source={Images.loginTitle}
+                            style={styles.backgroundImage}
+                            resizeMode="cover"
+                        >
+                            <View style={styles.textContainer}>
+                                <Text style={styles.headerText}>
+                                    Join with us, <Text style={styles.brandText}>Travelogger</Text>
+                                </Text>
+                            </View>
+                        </ImageBackground>
 
-                    {/* Login Form */}
-                    <View style={styles.formContainer}>
-                        <Text style={styles.loginTitle}>Login Now</Text>
-                        <Text style={styles.loginSubtitle}>Enter your Registered Email and Password to Explore the App</Text>
+                        {/* Login Form */}
+                        <View style={styles.formContainer}>
+                            <Text style={styles.loginTitle}>Login Now</Text>
+                            <Text style={styles.loginSubtitle}>Enter your Registered Email and Password to Explore the App</Text>
 
-                        {/* Email Input */}
-                        <View>
+                            {/* Email Input */}
+                            <View>
+                                <View style={styles.inputContainer}>
+                                    <SVGS.EMAIL width={hp(2.6)} height={hp(2.6)} />
+                                    <TextInput
+                                        placeholder='Email ID'
+                                        placeholderTextColor={COLORS.darkgray}
+                                        keyboardType='email-address'
+                                        style={styles.input}
+                                        value={form.email}
+                                        onChangeText={(text) => handleChange('email', text)}
+                                        editable={!loading}
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Password Input */}
                             <View style={styles.inputContainer}>
-                                <Email width={hp(2.6)} height={hp(2.6)} />
+                                <MaterialCommunityIcons name="lock-outline" size={hp(3)} color={COLORS.darkgray1} style={{ paddingRight: wp(1) }} />
                                 <TextInput
-                                    placeholder='Email ID'
+                                    placeholder='Password'
                                     placeholderTextColor={COLORS.darkgray}
-                                    keyboardType='email-address'
+                                    keyboardType='default'
+                                    secureTextEntry={isPasswordShown}
                                     style={styles.input}
-                                    value={email}
-                                    onChangeText={text => setEmail(text)}
+                                    value={form.password}
+                                    onChangeText={(text) => handleChange('password', text)}
                                     editable={!loading}
                                 />
-                            </View>
-                        </View>
 
-                        {/* Password Input */}
-                        <View style={styles.inputContainer}>
-                            <MaterialCommunityIcons name="lock-outline" size={hp(3)} color={COLORS.darkgray1} style={{ paddingRight: wp(1) }} />
-                            <TextInput
-                                placeholder='Password'
-                                placeholderTextColor={COLORS.darkgray}
-                                keyboardType='default'
-                                secureTextEntry={isPasswordShown}
-                                style={styles.input}
-                                value={password}
-                                onChangeText={text => setPassword(text)}
-                                editable={!loading}
+                                <TouchableOpacity
+                                    onPress={() => setIsPasswordShown(!isPasswordShown)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: 12,
+                                    }}
+                                >
+                                    {
+                                        isPasswordShown ? (
+                                            <MaterialIcons name="visibility-off" size={24} color={COLORS.darkgray1} />
+                                        ) : (
+                                            <MaterialIcons name="visibility" size={24} color={COLORS.darkgray1} />
+                                        )
+                                    }
+
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Forgot Password */}
+                            <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('ForgotPassword')}>
+                                <Text style={styles.forgotPassword}>Forgot Password?</Text>
+                            </TouchableOpacity>
+
+                            {/* Login Button */}
+                            <Button
+                                title="Login Now"
+                                onPress={handleLogin}
+                                disabled={loading}
+                                loading={loading}
+                                style={styles.loginButton}
                             />
 
-                            <TouchableOpacity
-                                onPress={() => setIsPasswordShown(!isPasswordShown)}
-                                style={{
-                                    position: 'absolute',
-                                    right: 12,
-                                }}
-                            >
-                                {
-                                    isPasswordShown ? (
-                                        <MaterialIcons name="visibility-off" size={24} color={COLORS.darkgray1} />
-                                    ) : (
-                                        <MaterialIcons name="visibility" size={24} color={COLORS.darkgray1} />
-                                    )
-                                }
-
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Forgot Password */}
-                        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('ForgotPassword')}>
-                            <Text style={styles.forgotPassword}>Forgot Password?</Text>
-                        </TouchableOpacity>
-
-                        {/* Login Button */}
-                        <Button
-                            title="Login Now"
-                            color={COLORS.red}
-                            onPress={() => navigation.navigate("TabStack")}
-                            style={styles.loginButton}
-                        />
-
-                        {/* Signup Navigation */}
-                        <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginTop: hp(2) }}>
-                            <Text style={styles.signupText}>Didn’t have an Account?</Text>
-                            <TouchableOpacity onPress={() => navigation.navigate('SignUp')} activeOpacity={0.7}>
-                                <Text style={styles.signupBold}> Create Account</Text>
-                            </TouchableOpacity>
+                            {/* Signup Navigation */}
+                            <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginTop: hp(2) }}>
+                                <Text style={styles.signupText}>Didn’t have an Account?</Text>
+                                <TouchableOpacity onPress={() => navigation.navigate('SignUp')} activeOpacity={0.7}>
+                                    <Text style={styles.signupBold}> Create Account</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };
@@ -189,14 +249,6 @@ const styles = StyleSheet.create({
         fontFamily: fontFamily.FONTS.Medium,
         fontSize: hp(1.8),
         marginVertical: hp(1)
-    },
-    loginButton: {
-        width: wp(90),
-        marginTop: hp(1),
-        alignSelf: 'center',
-        borderRadius: wp(3),
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     signupText: {
         fontSize: wp(4.5),

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     SafeAreaView,
     ScrollView,
@@ -12,23 +12,22 @@ import {
     ImageBackground
 } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import AntDesign from 'react-native-vector-icons/AntDesign';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from '../../components/Pixel/Index';
-import { COLORS } from '../../../constants';
+import { COLORS, Images, SVGS } from '../../../constants';
 import fontFamily from '../../../constants/fontFamily';
 import PlanYourTripIcon from '../../../assets/icons/planyourtrip.svg';
 import CreateWithAIIcon from '../../../assets/icons/createwithai.svg';
-import SearchIcon from '../../../assets/icons/search.svg';  // Replace with actual file path
-import BellIcon from '../../../assets/icons/notification.svg';      // Replace with actual file path 
 import LinearGradient from 'react-native-linear-gradient';
+import { retrieveDataFromAsyncStorage } from '../../utils/Helper';
+import { useSelector } from 'react-redux';
+import BasicHeader from '../../components/BasicHealder';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const heroData = [
-    { id: '1', image: require('../../../assets/images/BGHome.png'), title: 'Plan your Trip with us', subtitle: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.' },
-    { id: '2', image: require('../../../assets/images/Bali.png'), title: 'Explore the World', subtitle: 'Discover amazing places with us.' },
-    { id: '3', image: require('../../../assets/images/Turkey.png'), title: 'Your Adventure Awaits', subtitle: 'Book your next trip now!' },
+    { id: '1', image: Images.bgHome, title: 'Plan your Trip with us', subtitle: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.' },
+    { id: '2', image: Images.bali, title: 'Explore the World', subtitle: 'Discover amazing places with us.' },
+    { id: '3', image: Images.turkey, title: 'Your Adventure Awaits', subtitle: 'Book your next trip now!' },
 ];
 
 const featureData = [
@@ -39,42 +38,30 @@ const featureData = [
 const placeCategories = [
     {
         title: 'Top Visited Places', data: [
-            { id: '2', image: require('../../../assets/images/usa.png'), title: 'USA' },
-            { id: '3', image: require('../../../assets/images/Thailand.png'), title: 'Thailand' },
-            { id: '4', image: require('../../../assets/images/Turkey.png'), title: 'Turkey' },
+            { id: '2', image: Images.usa, title: 'USA' },
+            { id: '3', image: Images.thailand, title: 'Thailand' },
+            { id: '4', image: Images.turkey, title: 'Turkey' },
         ]
     },
     {
         title: 'Rated Places for you', data: [
-            { id: '5', image: require('../../../assets/images/Canada.png'), title: 'Canada' },
-            { id: '6', image: require('../../../assets/images/Bristol.png'), title: 'Bristol' },
-            { id: '7', image: require('../../../assets/images/Turkey.png'), title: 'Paris' },
+            { id: '5', image: Images.canada, title: 'Canada' },
+            { id: '6', image: Images.bristol, title: 'Bristol' },
+            { id: '7', image: Images.turkey, title: 'Paris' },
         ]
     }
 ];
 
 const Main = () => {
     const [activeHeroIndex, setActiveHeroIndex] = useState(0);
+    const userData = useSelector(state => state.userData);
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar backgroundColor={COLORS.white} barStyle={'dark-content'} />
-
-            {/* 🔴 Fixed Header */}
-            <View style={styles.header}>
-                <Image source={require('../../../assets/images/travelogger_logo.png')} style={styles.logo} />
-
-                <View style={styles.headerIcons}>
-                    <TouchableOpacity>
-                        <SearchIcon width={wp(8.5)} height={hp(4)} />
-                    </TouchableOpacity>
-                    <TouchableOpacity>
-                        <BellIcon width={wp(8.5)} height={hp(4)} style={styles.notificationIcon} />
-                    </TouchableOpacity>
-                </View>
-            </View>
+            {/* Header */}
+            <BasicHeader />
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(13.5) }}>
-
                 {/* Hero Section - Swipeable */}
                 <Carousel
                     width={screenWidth}
@@ -105,7 +92,7 @@ const Main = () => {
                         return (
                             <LinearGradient
                                 key={item.id}
-                                colors={['#FEF2F2', '#FFD1D1']} // Gradient Colors
+                                colors={[COLORS.LavenderBlush, COLORS.LightCoral]} // Gradient Colors
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }} // Left to Right Gradient
                                 style={styles.featureCard}
@@ -137,7 +124,7 @@ const Main = () => {
                             <View style={styles.famousCard}>
                                 <ImageBackground source={item.image} style={styles.famousplaceImage}>
                                     {/* Overlay Image */}
-                                    <Image source={require('../../../assets/images/overlay.png')} style={styles.overlayImage} />
+                                    <Image source={Images.overlay} style={styles.overlayImage} />
                                     <View style={styles.overlay} />
                                     <Text style={styles.famousplaceText}>{item.title}</Text>
                                 </ImageBackground>
@@ -173,27 +160,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.white,
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: wp(3),
-        marginTop: hp(5),
-        paddingBottom: hp(1),
-        backgroundColor: COLORS.white,
-    },
-    logo: {
-        height: hp(4),
-        width: wp(35),
-        resizeMode: 'contain',
-    },
-    headerIcons: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    notificationIcon: {
-        marginLeft: wp(2),
-    },
     heroContainer: {
         position: 'relative',
         overlayColor: 'rgba(0,0,0,0.3)',
@@ -210,13 +176,14 @@ const styles = StyleSheet.create({
         right: wp(4)
     },
     heroTitle: {
-        fontSize: wp(5),
+        fontSize: hp(2.2),
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.white
     },
     heroSubtitle: {
-        fontSize: wp(4),
+        fontSize: hp(1.8),
         color: COLORS.white,
+        fontFamily: fontFamily.FONTS.Medium,
         marginTop: hp(0.5)
     },
     // Feature Section
@@ -239,7 +206,7 @@ const styles = StyleSheet.create({
     },
 
     featureText: {
-        fontSize: wp(4),
+        fontSize: hp(1.9),
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.black,
         flex: 1,
@@ -268,7 +235,7 @@ const styles = StyleSheet.create({
         height: wp(2.5)
     },
     sectionTitle: {
-        fontSize: wp(4.3),
+        fontSize: hp(2),
         color: COLORS.darkgray,
         fontFamily: fontFamily.FONTS.bold,
         marginHorizontal: wp(4),
@@ -316,8 +283,8 @@ const styles = StyleSheet.create({
     famousplaceText: {
         padding: hp(1.5), // Adjusted padding for better spacing
         fontSize: wp(4.5), // Increased font size slightly
-        fontWeight: 'bold',
-        color: '#fff',
+        fontFamily: fontFamily.FONTS.bold,
+        color: COLORS.white,
         textAlign: 'center',
     },
 });
