@@ -20,6 +20,8 @@ import EditProfile from './EditProfile/index.js';
 import ChangePassword from './ChangePassword/index.js';
 import Privacy from './Privacy/index.js';
 import Terms from './Terms/index.js';
+import BlogScreen from './BlogScreen/index.js';
+import NotificationScreen from './notification/index.js';
 
 export {
     Splash,
@@ -43,5 +45,7 @@ export {
     EditProfile,
     ChangePassword,
     Privacy,
-    Terms
+    Terms,
+    BlogScreen,
+    NotificationScreen
 };

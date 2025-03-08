@@ -4,6 +4,7 @@ import { SIGNUP_SUCCESS, LOGIN_SUCCESS, LOGOUT, UPDATE_PROFILE, FORGOT_PASSWORD,
 const initialState = {
     userData: null,
     tripDetails: {
+        itineraryId: null,
         destination: '',
         startDate: null,
         endDate: null,
@@ -71,12 +72,18 @@ const rootReducer = (state = initialState, action) => {
                 },
             };
 
-        case CLEAR_TRIP_DETAILS:
+        case DELETE_TRIP_DAY_ITEM:
             return {
                 ...state,
-                tripDetails: initialState.tripDetails, // Reset tripDetails to initial state
+                tripDetails: {
+                    ...state.tripDetails,
+                    tripDays: state.tripDetails.tripDays.map((day, index) =>
+                        index === action.payload.dayIndex
+                            ? { ...day, items: day.items.filter(item => item.id !== action.payload.itemId) } // ✅ Remove item immutably
+                            : day
+                    ),
+                },
             };
-
 
         // 🔹 Itineraries Handling
         case CREATE_ITINERARY:

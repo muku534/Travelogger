@@ -35,26 +35,52 @@ const featureData = [
     { id: '2', IconComponent: CreateWithAIIcon, title: 'Create with AI' },
 ];
 
+// const placeCategories = [
+//     {
+//         title: 'Top Visited Places', data: [
+//             { id: '2', image: Images.usa, title: 'USA' },
+//             { id: '3', image: Images.thailand, title: 'Thailand' },
+//             { id: '4', image: Images.turkey, title: 'Turkey' },
+//         ]
+//     },
+//     {
+//         title: 'Rated Places for you', data: [
+//             { id: '5', image: Images.canada, title: 'Canada' },
+//             { id: '6', image: Images.bristol, title: 'Bristol' },
+//             { id: '7', image: Images.turkey, title: 'Paris' },
+//         ]
+//     }
+// ];
+
 const placeCategories = [
     {
-        title: 'Top Visited Places', data: [
-            { id: '2', image: Images.usa, title: 'USA' },
-            { id: '3', image: Images.thailand, title: 'Thailand' },
-            { id: '4', image: Images.turkey, title: 'Turkey' },
+        title: 'Top Visited Places',
+        data: [
+            { id: '2', image: Images.usa, title: 'USA', blogUrl: 'https://www.headout.com/grand-canyon-tours-c-528/' },
+            { id: '3', image: Images.thailand, title: 'Thailand', blogUrl: 'https://www.headout.com/blog/statue-of-liberty/' },
+            { id: '4', image: Images.turkey, title: 'Turkey', blogUrl: 'https://www.headout.com/things-to-do-city-dubai/?ci=1&cm=554851998_1307320455972971_c_o_www.headout.com_b_%7Bextensionid%7D_&msclkid=0765f0022e78167dab2997c96d816e08&utm_campaign=Dubai%20-%20Performance%20Max%20-%20English%20-%20Rest%20of%20World%20-%20Performance%20Max%20-%20All%20-%20All&utm_content=Dubai%20City%20Page&utm_medium=cpc&utm_source=bing&utm_term=www.headout.com' },
         ]
     },
     {
-        title: 'Rated Places for you', data: [
-            { id: '5', image: Images.canada, title: 'Canada' },
-            { id: '6', image: Images.bristol, title: 'Bristol' },
-            { id: '7', image: Images.turkey, title: 'Paris' },
+        title: 'Rated Places for you',
+        data: [
+            { id: '5', image: Images.canada, title: 'Canada', blogUrl: 'https://www.headout.com/grand-canyon-tours-c-528/' },
+            { id: '6', image: Images.bristol, title: 'Bristol', blogUrl: 'https://www.headout.com/blog/statue-of-liberty/' },
+            { id: '7', image: Images.turkey, title: 'Paris', blogUrl: 'https://www.headout.com/things-to-do-city-dubai/?ci=1&cm=554851998_1307320455972971_c_o_www.headout.com_b_%7Bextensionid%7D_&msclkid=0765f0022e78167dab2997c96d816e08&utm_campaign=Dubai%20-%20Performance%20Max%20-%20English%20-%20Rest%20of%20World%20-%20Performance%20Max%20-%20All%20-%20All&utm_content=Dubai%20City%20Page&utm_medium=cpc&utm_source=bing&utm_term=www.headout.com' },
         ]
     }
 ];
 
-const Main = () => {
+
+
+const Main = ({ navigation }) => {
     const [activeHeroIndex, setActiveHeroIndex] = useState(0);
     const userData = useSelector(state => state.userData);
+
+    // Function to navigate to the BlogScreen with the blog URL
+    const handlePlacePress = (blogUrl) => {
+        navigation.navigate('BlogScreen', { blogUrl });
+    };
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar backgroundColor={COLORS.white} barStyle={'dark-content'} />
@@ -90,16 +116,27 @@ const Main = () => {
                     {featureData.map((item) => {
                         const IconComponent = item.IconComponent;
                         return (
-                            <LinearGradient
+                            <TouchableOpacity
                                 key={item.id}
-                                colors={[COLORS.LavenderBlush, COLORS.LightCoral]} // Gradient Colors
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }} // Left to Right Gradient
-                                style={styles.featureCard}
+                                onPress={() => {
+                                    if (item.title === "Plan your Trip") {
+                                        navigation.navigate("PlanTrip");
+                                    } else if (item.title === "Create with AI") {
+                                        navigation.navigate("AIPlainTrip");
+                                    }
+                                }}
+                                activeOpacity={0.7}
                             >
-                                <Text style={styles.featureText}>{item.title}</Text>
-                                <IconComponent width={wp(13)} height={wp(13)} />
-                            </LinearGradient>
+                                <LinearGradient
+                                    colors={[COLORS.LavenderBlush, COLORS.LightCoral]} // Gradient Colors
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }} // Left to Right Gradient
+                                    style={styles.featureCard}
+                                >
+                                    <Text style={styles.featureText}>{item.title}</Text>
+                                    <IconComponent width={wp(13)} height={wp(13)} />
+                                </LinearGradient>
+                            </TouchableOpacity>
                         );
                     })}
                 </View>
@@ -121,14 +158,14 @@ const Main = () => {
                         data={placeCategories[0].data}
                         scrollAnimationDuration={700} // Slightly faster scroll
                         renderItem={({ item }) => (
-                            <View style={styles.famousCard}>
+                            <TouchableOpacity onPress={() => handlePlacePress(item.blogUrl)} style={styles.famousCard} activeOpacity={0.7} >
                                 <ImageBackground source={item.image} style={styles.famousplaceImage}>
                                     {/* Overlay Image */}
                                     <Image source={Images.overlay} style={styles.overlayImage} />
                                     <View style={styles.overlay} />
                                     <Text style={styles.famousplaceText}>{item.title}</Text>
                                 </ImageBackground>
-                            </View>
+                            </TouchableOpacity>
                         )}
                     />
                 </View>
@@ -140,10 +177,10 @@ const Main = () => {
                         <Text style={styles.sectionTitle}>{category.title}</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                             {category.data.map((place) => (
-                                <View key={place.id} style={styles.placeCard}>
+                                <TouchableOpacity key={place.id} onPress={() => handlePlacePress(place.blogUrl)} style={styles.placeCard} activeOpacity={0.7} >
                                     <Image source={place.image} style={styles.placeImage} />
                                     <Text style={styles.placeText}>{place.title}</Text>
-                                </View>
+                                </TouchableOpacity>
                             ))}
                         </ScrollView>
                     </View>

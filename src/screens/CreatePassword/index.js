@@ -1,18 +1,18 @@
 import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, TextInput } from 'react-native';
 import React, { useState } from 'react';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
-import { COLORS } from "../../../constants";
-import fontFamily from "../../../constants/fontFamily";
+import { COLORS, fontFamily } from "../../../constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import CreatePasswordImage from "../../../assets/images/Create_Password.svg";
 import Button from '../../components/Button';
-import Email from '../../../assets/icons/email.svg';
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import FontAwesome from "react-native-vector-icons/FontAwesome";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import Toast from 'react-native-toast-message';  // Import Toast for notifications
+import { updatePassword } from '../../services/authService';
 
-const CreatePassword = ({ navigation }) => {
-    const [email, setEmail] = useState('');
+const CreatePassword = ({ route, navigation }) => {
+    const { email } = route.params; // Assume the email is passed via navigation
+
     const [form, setForm] = useState({
         password: '',
         confirmPassword: '',
@@ -21,14 +21,69 @@ const CreatePassword = ({ navigation }) => {
     const [isConfirmPasswordShown, setIsConfirmPasswordShown] = useState(true);
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = () => {
-        setLoading(true);
-        // Simulate a network request here
-        setTimeout(() => {
-            setLoading(false);
-            navigation.navigate("TabStack");
-        }, 200); // Simulating network request with timeout
+    const handleChange = (field, value) => {
+        setForm(prevState => ({
+            ...prevState,
+            [field]: value,
+        }));
     };
+
+    const handleSubmit = async () => {
+        const { password, confirmPassword } = form;
+
+        // Validate if passwords are empty
+        if (!password || !confirmPassword) {
+            Toast.show({
+                type: 'error',
+                text1: 'All fields are required!',
+                text2: 'Please make sure both password fields are filled.',
+            });
+            return;
+        }
+
+        // Validate if passwords match
+        if (password !== confirmPassword) {
+            Toast.show({
+                type: 'error',
+                text1: 'Password mismatch!',
+                text2: 'Your passwords do not match. Please try again.',
+            });
+            return;
+        }
+        try {
+            setLoading(true);
+            // Change field name to match API requirements
+            const requestedData = {
+                email: email,
+                newPassword: password,
+                confirmPassword: confirmPassword
+            };
+
+            const response = await updatePassword(requestedData);
+
+            console.log("Update password API response", response);
+
+            // Show success message
+            Toast.show({
+                type: 'success',
+                text1: 'Password updated successfully!',
+                text2: 'You can now log in with your new password.',
+            });
+            // Navigate to Login screen
+            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+
+        } catch (error) {
+            // Show error message
+            Toast.show({
+                type: 'error',
+                text1: 'Error updating password!',
+                text2: error.message || 'Something went wrong, please try again.',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -36,7 +91,7 @@ const CreatePassword = ({ navigation }) => {
             <View style={styles.container}>
                 {/* Header */}
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={wp(6)} color="black" />
+                    <Ionicons name="arrow-back" size={wp(6)} color={COLORS.darkgray} />
                 </TouchableOpacity>
 
                 <View style={{ flex: 1, alignItems: 'center' }}>
@@ -50,7 +105,7 @@ const CreatePassword = ({ navigation }) => {
 
                     {/* Instruction Text */}
                     <Text style={styles.instruction}>
-                        Create a Strong Password that you will never forgot it again
+                        Create a Strong Password that you will never forget again
                     </Text>
 
                     {/* Input Field */}
@@ -81,20 +136,24 @@ const CreatePassword = ({ navigation }) => {
                     />
 
                     {/* Submit Button */}
-                    <Button
-                        title={"Confirm Password"}
-                        color={COLORS.red}
-                        onPress={handleSubmit}
-                        style={styles.button}
-                        disabled={loading}
-                    />
+                    <View style={{ marginVertical: hp(2) }}>
+                        <Button
+                            title={loading ? "Updating..." : "Confirm Password"}
+                            color={COLORS.red}
+                            onPress={handleSubmit}
+                            style={styles.button}
+                            disabled={loading}
+                        />
+                    </View>
                 </View>
             </View>
+
+            <Toast />
         </SafeAreaView>
     );
 };
 
-const InputField = ({ label, icon, placeholder, value, onChangeText, keyboardType = 'default', secureTextEntry, editable, toggleSecure, isSecure }) => (
+const InputField = ({ label, icon, placeholder, value, onChangeText, secureTextEntry, editable, toggleSecure, isSecure }) => (
     <View>
         <Text style={styles.label}>{label}</Text>
         <View style={styles.inputContainer}>
@@ -102,7 +161,6 @@ const InputField = ({ label, icon, placeholder, value, onChangeText, keyboardTyp
             <TextInput
                 placeholder={placeholder}
                 placeholderTextColor={COLORS.darkgray}
-                keyboardType={keyboardType}
                 secureTextEntry={secureTextEntry}
                 style={styles.input}
                 value={value}
@@ -175,6 +233,7 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingLeft: wp(2),
         color: COLORS.darkgray,
+        fontFamily: fontFamily.FONTS.Medium,
         fontSize: wp(4),
     },
     eyeIcon: {
@@ -183,7 +242,6 @@ const styles = StyleSheet.create({
     },
     button: {
         width: wp(90),
-        marginVertical: hp(2),
         alignSelf: 'center',
         borderRadius: wp(3),
         justifyContent: 'center',

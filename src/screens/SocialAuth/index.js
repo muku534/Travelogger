@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, Image, ImageBackground, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, StatusBar, Alert } from 'react-native';
+import { View, Text, Image, ImageBackground, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, StatusBar, Alert, Platform } from 'react-native';
 import {
     heightPercentageToDP as hp,
     widthPercentageToDP as wp,
@@ -74,6 +74,7 @@ export default SocialAuth;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        paddingTop: Platform.OS === 'ios' ? hp(4) : 0
     },
     backgroundImage: {
         width: '100%',

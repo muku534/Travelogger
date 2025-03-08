@@ -7,17 +7,30 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import ForgotPasswordImage from "../../../assets/images/Forgot_Password.svg";
 import Button from '../../components/Button';
 import Email from '../../../assets/icons/email.svg';
+import Toast from 'react-native-toast-message';  // Import Toast
 
 const ForgotPassword = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = () => {
+        if (email.trim() === '') {
+            // Show a toast message if email is not entered
+            Toast.show({
+                type: 'error',
+                position: 'top',
+                text1: 'Email required',
+                text2: 'Please enter your email address before proceeding.',
+                visibilityTime: 3000,
+            });
+            return;
+        }
+
         setLoading(true);
         // Simulate a network request here
         setTimeout(() => {
             setLoading(false);
-            navigation.navigate("OtpVerification");
+            navigation.navigate("CreatePassword", { email });
         }, 200); // Simulating network request with timeout
     };
 
@@ -61,13 +74,16 @@ const ForgotPassword = ({ navigation }) => {
 
                 {/* Submit Button */}
                 <Button
-                    title={loading ? "Sending..." : "Send OTP"}
+                    title={"Continue"}
                     color={COLORS.red}
                     onPress={handleSubmit}
                     style={styles.button}
                     disabled={loading}
                 />
             </View>
+
+            {/* Toast container */}
+            <Toast />
         </SafeAreaView>
     );
 };

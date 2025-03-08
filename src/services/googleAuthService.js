@@ -1,7 +1,5 @@
-import { FIREBASE_WEB_CLIENT_ID } from '@env';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import auth from '@react-native-firebase/auth';
-import { googleLogin, signUp } from './authService';
+import { googleLogin } from './authService';
 import { storeDataInAsyncStorage } from '../utils/Helper';
 import { LOGIN_SUCCESS } from '../redux/Actions';
 import logger from '../utils/logger';
@@ -10,65 +8,52 @@ import Toast from 'react-native-toast-message';
 export const signInWithGoogle = async (navigation, dispatch) => {
     try {
         GoogleSignin.configure({
-            webClientId: FIREBASE_WEB_CLIENT_ID,
-            offlineAccess: false,
+            webClientId: '181504532584-8o1jdaa0cn6ves6tb1oj1p74u6hc85kc.apps.googleusercontent.com',
+            offlineAccess: true,
+            prompt: 'select_account',
             scopes: ['profile', 'email'],
         });
 
         await GoogleSignin.hasPlayServices();
         const userInfo = await GoogleSignin.signIn();
 
-        console.log("Google Sign-In UserInfo:", userInfo);
+        console.log("this is the userInfo:", userInfo);
 
-        // Correctly extract the idToken and user details
-        const { idToken } = userInfo.data;
-        const user = userInfo.data.user;
+        // ✅ Correctly extract idToken whether it's inside `data` or not
+        const idToken = userInfo?.data?.idToken || userInfo?.idToken;
 
         if (!idToken) {
-            throw new Error("Google Sign-In failed, no ID token received.");
+            throw new Error("Failed to retrieve ID Token from Google.");
         }
 
-        // Authenticate with Firebase
-        const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-        const userCredential = await auth().signInWithCredential(googleCredential);
+        console.log("this is the idToken:", idToken);
 
-        console.log("Firebase Authentication Successful:", userCredential);
+        Toast.show({ type: 'info', text1: 'Authenticating...', text2: 'Please wait' });
 
-        // Construct user data for API call
-        const userData = {
-            name: user.name || "Unknown User",
-            email: user.email,
-            password: "",
-            createdBy: "Google",
-            avatarImgUrl: user.photo ||
-                `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${user.name || "User"}&backgroundColor=b6e3f4`,
-        };
+        // ✅ Ensure correct idToken format
+        const response = await googleLogin({ idToken });
 
-        Toast.show({ type: 'info', text1: 'Registering user...', text2: 'Please wait' })
+        console.log("API response", response);
 
-        // Call backend API to store user in your database
-        const response = await signUp(userData);
+        Toast.show({
+            type: 'success',
+            text1: response.message || "Authentication Successful",
+            text2: 'Redirecting to Home...'
+        });
 
-        if (!response) {
-            throw new Error("Failed to authenticate with backend.");
-        }
-
-        Toast.show({ type: 'success', text1: 'Sign-Up Successful', text2: 'Redirecting to Home...' });
-
-        // Store user data locally
         await storeDataInAsyncStorage("userData", response);
 
-        // Dispatch Redux action
         dispatch({
             type: LOGIN_SUCCESS,
             payload: { userData: response },
         });
 
-        // Navigate to the home screen
         navigation.reset({ index: 0, routes: [{ name: 'TabStack' }] });
 
     } catch (error) {
         Toast.show({ type: 'error', text1: 'Google Sign-In Failed', text2: error.message || "Something went wrong!" });
-        logger.error("Google Sign-In Error:", error);
+        console.log("Google Sign-In Error:", error);
     }
 };
+
+

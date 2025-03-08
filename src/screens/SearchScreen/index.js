@@ -1,7 +1,7 @@
 import { GOOGLE_API_KEY } from "@env";
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, FlatList, TextInput, StyleSheet, SafeAreaView, StatusBar, Image, Animated, Alert } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import { COLORS, fontFamily, Images } from '../../../constants';
 import MapView, { Marker } from 'react-native-maps';
@@ -11,12 +11,17 @@ import axios from "axios";
 import debounce from "lodash/debounce";
 import { useDispatch } from "react-redux";
 import { ADD_TRIP_DAY_ITEM } from "../../redux/Actions";
+import logger from '../../utils/logger';
+import Toast from "react-native-toast-message";
 
-const SearchScreen = () => {
+const SearchScreen = ({ route }) => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
-    const route = useRoute();
-    const { category, dayIndex } = route.params;
+    // const { category, dayIndex } = route.params;
+    const isSearchOnly = route.params?.isSearchOnly || false;
+
+    const category = route.params?.category || "Hotel";
+    const dayIndex = route.params?.dayIndex ?? 0;
 
     const [destination, setDestination] = useState("");
     const [suggestions, setSuggestions] = useState([]);
@@ -63,7 +68,7 @@ const SearchScreen = () => {
                 setShowSuggestions(false);
             }
         } catch (error) {
-            console.error("Error fetching places:", error);
+            logger.error("Error fetching places:", error);
             setSuggestions([]);
             setShowSuggestions(true);
         }
@@ -83,8 +88,6 @@ const SearchScreen = () => {
 
     //  Handle Place Selection
     const handlePlaceSelect = async (place) => {
-        console.log("Selected place:", place);
-
         setDestination(place.description);
         setSuggestions([]);
         setShowSuggestions(true);
@@ -99,8 +102,6 @@ const SearchScreen = () => {
                     },
                 }
             );
-
-            console.log("Place Details Response:", response.data);
 
             if (response.data.status === "OK") {
                 const details = response.data.result;
@@ -120,7 +121,7 @@ const SearchScreen = () => {
                 setSelectedPlaceDetails(placeDetails);
             }
         } catch (error) {
-            console.error("Error fetching place details:", error);
+            logger.error("Error fetching place details:", error);
         }
     };
 
@@ -154,7 +155,11 @@ const SearchScreen = () => {
             })
             navigation.goBack();
         } else {
-            Alert.alert("Please select a place to add.");
+            Toast.show({
+                type: "error",
+                text1: "Missing Selection",
+                text2: "Please select a place to add.",
+            });
         }
     };
 
@@ -166,14 +171,19 @@ const SearchScreen = () => {
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={hp(3)} color={COLORS.darkgray} />
                     </TouchableOpacity>
-                    <Text style={styles.header}>Add a {category} to the itinerary</Text>
+                    {/* <Text style={styles.header}>Add a {category} to the itinerary</Text> */}
+                    <Text style={styles.header}>
+                        {isSearchOnly ? "Explore Places" : `Add ${category} to Your Itinerary`}
+                    </Text>
                 </View>
 
                 <View style={{ marginTop: hp(2), marginHorizontal: wp(6) }}>
-                    <Text style={styles.label}>Search for {category}</Text>
+                    <Text style={styles.label}>
+                        {isSearchOnly ? "Discover and explore amazing places" : `Find the best ${category} for your trip`}
+                    </Text>
                     <TextInput
                         style={styles.input}
-                        placeholder={`Search for a ${category}...`}
+                        placeholder={isSearchOnly ? "Search for places..." : `Search for a ${category}...`}
                         value={destination}
                         onChangeText={handleDestinationChange}
                     />
@@ -222,12 +232,14 @@ const SearchScreen = () => {
                     )}
                 /> */}
 
-                <View style={styles.buttonContainer}>
-                    <Button
-                        title="Add into the list"
-                        onPress={handleAddToList}
-                    />
-                </View>
+                {!isSearchOnly && (
+                    <View style={styles.buttonContainer}>
+                        <Button
+                            title="Add into the list"
+                            onPress={handleAddToList}
+                        />
+                    </View>
+                )}
 
             </View>
         </SafeAreaView>

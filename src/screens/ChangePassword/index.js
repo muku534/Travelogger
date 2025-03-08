@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
-import { COLORS } from "../../../constants";
+import { COLORS, fontFamily } from "../../../constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Button from '../../components/Button';
-import fontFamily from '../../../constants/fontFamily';
+import logger from '../../utils/logger';
+import Toast from 'react-native-toast-message';
 
 const ChangePassword = ({ navigation }) => {
     const [currentPassword, setCurrentPassword] = useState('');
@@ -13,10 +14,13 @@ const ChangePassword = ({ navigation }) => {
 
     const handleUpdatePassword = () => {
         if (newPassword !== confirmPassword) {
-            alert("Passwords do not match!");
+            Toast.show({
+                type: "error",
+                text1: "Passwords do not match!",
+            });
             return;
         }
-        console.log("Password Updated Successfully");
+        logger.error("Password Updated Successfully");
     };
 
     return (
@@ -84,7 +88,7 @@ const styles = StyleSheet.create({
         marginHorizontal: wp(4),
         marginBottom: hp(3),
         flexDirection: "row",
-        alignItems:'center'
+        alignItems: 'center'
     },
     backButton: {
         marginRight: wp(2), // Add spacing from title
@@ -109,6 +113,8 @@ const styles = StyleSheet.create({
         height: hp(6),
         borderWidth: 1,
         borderColor: COLORS.gray,
+        color: COLORS.darkgray,
+        fontFamily: fontFamily.FONTS.Medium,
         borderRadius: wp(2),
         paddingHorizontal: wp(4),
         fontSize: wp(4),

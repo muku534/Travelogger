@@ -27,6 +27,26 @@ export const getItineraryById = async (itineraryId) => {
     }
 };
 
+export const updateItineraryById = async (itineraryId, itineraryData) => {
+    try {
+        const response = await api.post(`/itinerary/update/${itineraryId}`, itineraryData);
+        return response.data; // Return updated profile data
+    } catch (error) {
+        throw error.response?.data || { message: "Something went wrong" };
+    }
+};
+
+export const ShareItinerary = async (itineraryData) => {
+    try {
+        const response = await api.post('/email/send-itinerary', itineraryData);
+        console.log("share api response", response)
+        return response.data;
+    } catch (error) {
+        console.log("error sending suring the share", error)
+        throw error.response?.data || { message: "Somthing went wrong during share itinerary" };
+    }
+};
+
 export const deleteItineraryById = async (itineraryId) => {
     try {
         const response = await api.delete(`/deleteItinerary/${itineraryId}`);

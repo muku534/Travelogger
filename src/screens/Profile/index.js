@@ -15,7 +15,6 @@ import Toast from "react-native-toast-message";
 const Profile = ({ navigation }) => {
     const dispatch = useDispatch();
     const userData = useSelector(state => state.userData);
-    console.log("this is the user data", userData)
 
     const openSocialLink = (url) => {
         if (url) {
@@ -39,7 +38,6 @@ const Profile = ({ navigation }) => {
                         type: FETCH_PROFILE,
                         payload: { userData: profileData },
                     });
-                    console.log("Profile Data:", profileData);
                     await storeDataInAsyncStorage("userData", profileData)
                 } else {
                     logger.error("Invalid Profile Data:", profileData);
@@ -81,7 +79,7 @@ const Profile = ({ navigation }) => {
 
                             navigation.reset({ index: 0, routes: [{ name: 'Login' }] }); // Navigate to Login
                         } catch (error) {
-                            console.error("Delete Account Error:", error);
+                            logger.error("Delete Account Error:", error);
                             Toast.show({
                                 type: "error",
                                 text1: "Deletion Failed",
@@ -97,12 +95,13 @@ const Profile = ({ navigation }) => {
     const handleLogout = async () => {
         try {
             await AsyncStorage.removeItem('userData'); // Clear stored user data
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] }); // Navigate to Login
+            navigation.reset({ index: 0, routes: [{ name: 'SocialAuth' }] }); // Navigate to Login
         } catch (error) {
             logger.error("Logout Error:", error);
         }
     };
 
+    
     // Menu Items with Navigation Screens
     const menuItems = [
         { label: 'Edit Profile', icon: <SVGS.EDIT_PROFILE width={hp(3.3)} height={hp(3)} />, screen: 'EditProfile' },

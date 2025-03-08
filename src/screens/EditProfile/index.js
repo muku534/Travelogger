@@ -48,7 +48,6 @@ const EditProfile = ({ navigation }) => {
 
     const handleSaveChanges = async () => {
         setloading(true);
-        console.log("Form Data:", formData);
         try {
             const updatedData = {
                 ...formData,

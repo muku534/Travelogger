@@ -3,16 +3,15 @@ import api from './Api';
 export const login = async (email, password) => {
     try {
         const response = await api.post("/user/login", { email, password });
-
         return response.data;  // Return user data or other relevant information
     } catch (error) {
         throw error.response?.data || { message: "Something went wrong" };
     }
 };
 
-export const googleLogin = async (userData) => {
+export const googleLogin = async ({ idToken }) => {
     try {
-        const response = await api.post("/google", userData);
+        const response = await api.post("/google", { idToken });
 
         return response.data;  // Return user data or other relevant information
     } catch (error) {
@@ -42,6 +41,15 @@ export const getProfile = async (userId) => {
 export const updateProfile = async (userId, updatedData) => {
     try {
         const response = await api.post(`/createProfile/${userId}`, updatedData);
+        return response.data; // Return updated profile data
+    } catch (error) {
+        throw error.response?.data || { message: "Something went wrong" };
+    }
+};
+
+export const updatePassword = async (requestedData) => {
+    try {
+        const response = await api.put('/password/update', requestedData);
         return response.data; // Return updated profile data
     } catch (error) {
         throw error.response?.data || { message: "Something went wrong" };

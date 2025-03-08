@@ -61,12 +61,13 @@ const SignUp = ({ navigation }) => {
             return;
         }
 
-        setLoading(true);
         try {
+            setLoading(true);
             const userData = {
                 name, email, password, avatarImgUrl: selectedAvatar, createdBy: "Travelogger"
             };
             const response = await signUp(userData);
+            console.log("api response:", response)
 
             await storeDataInAsyncStorage("userData", response)
 
@@ -83,7 +84,7 @@ const SignUp = ({ navigation }) => {
 
             navigation.reset({ index: 0, routes: [{ name: 'TabStack' }] });
         } catch (error) {
-            console.log('Signup Error:', error);
+            logger.error('Signup Error:', error);
             Toast.show({
                 type: 'error',
                 text1: 'Signup Failed',
@@ -105,7 +106,7 @@ const SignUp = ({ navigation }) => {
                     {/* Name Input */}
                     <InputField
                         label="Name"
-                        icon={<FontAwesome name="user" size={hp(3)} color={COLORS.darkgray1} />}
+                        icon={<FontAwesome name="user-o" size={hp(2.5)} color={COLORS.darkgray1} />}
                         placeholder="Enter Name"
                         value={form.name}
                         onChangeText={(text) => handleChange('name', text)}
@@ -115,7 +116,7 @@ const SignUp = ({ navigation }) => {
                     {/* Email Input */}
                     <InputField
                         label="Email Address"
-                        icon={<MaterialCommunityIcons name="email-outline" size={hp(3)} color={COLORS.darkgray1} />}
+                        icon={<MaterialCommunityIcons name="email-outline" size={hp(2.5)} color={COLORS.darkgray1} />}
                         placeholder="Email ID"
                         value={form.email}
                         keyboardType="email-address"
@@ -126,7 +127,7 @@ const SignUp = ({ navigation }) => {
                     {/* Password Input */}
                     <InputField
                         label="Password"
-                        icon={<MaterialCommunityIcons name="lock-outline" size={hp(3)} color={COLORS.darkgray1} />}
+                        icon={<MaterialCommunityIcons name="lock-outline" size={hp(2.5)} color={COLORS.darkgray1} />}
                         placeholder="Password"
                         value={form.password}
                         secureTextEntry={isPasswordShown}
@@ -139,7 +140,7 @@ const SignUp = ({ navigation }) => {
                     {/* Confirm Password Input */}
                     <InputField
                         label="Confirm Password"
-                        icon={<MaterialCommunityIcons name="lock-outline" size={hp(3)} color={COLORS.darkgray1} />}
+                        icon={<MaterialCommunityIcons name="lock-outline" size={hp(2.5)} color={COLORS.darkgray1} />}
                         placeholder="Re-Enter Password"
                         value={form.confirmPassword}
                         secureTextEntry={isConfirmPasswordShown}
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.white,
         paddingHorizontal: wp(4),
-        paddingTop: hp(3),
+        paddingTop: Platform.OS === 'ios' ? hp(4) : hp(3)
     },
     title: {
         fontSize: wp(6),
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
     },
     eyeIcon: {
         position: 'absolute',
-        right: 12,
+        right: wp(4),
     },
     avatarTitle: {
         fontSize: wp(4),

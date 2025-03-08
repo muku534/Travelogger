@@ -1,23 +1,16 @@
 import React from "react";
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar } from "react-native";
-import Ionicons from "react-native-vector-icons/Ionicons";
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
-import { COLORS } from "../../../constants";
-import fontFamily from "../../../constants/fontFamily";
+import { COLORS, fontFamily } from "../../../constants";
+import CommonHeader from "../../components/CommonHeader";
 
 const Terms = ({ navigation }) => {
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
             <StatusBar backgroundColor={COLORS.white} barStyle={'dark-content'} />
+            {/* Header */}
+            <CommonHeader title="Terms and Conditions" navigation={navigation} />
             <View style={styles.container}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Ionicons name="arrow-back" size={wp(6)} color="black" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Terms and Conditions</Text>
-                </View>
-
                 {/* Scrollable Content */}
                 <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
                     <Text style={styles.text}>
@@ -66,29 +59,18 @@ export default Terms;
 const styles = {
     container: {
         flex: 1,
-        marginTop: hp(5),
+        marginTop: hp(2),
         paddingHorizontal: wp(3),
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: hp(2.5),
-    },
-    headerTitle: {
-        fontSize: wp(5),
-        color: COLORS.darkgray,
-        fontFamily: fontFamily.FONTS.bold,
-        marginLeft: wp(3),
     },
     content: {
         flex: 1,
-        marginVertical: hp(2),
         marginHorizontal: wp(2),
     },
     text: {
-        fontSize: wp(3.8),
+        fontFamily: fontFamily.FONTS.Medium,
+        fontSize: hp(1.8),
         lineHeight: hp(2.5),
         textAlign: "justify",
-        color: "#444",
+        color: COLORS.darkgray,
     },
 };

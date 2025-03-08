@@ -1,24 +1,105 @@
 import React, { useEffect, useRef, useState, version } from 'react';
-import { View, Text, ImageBackground, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, StatusBar, Animated, Image, ScrollView } from 'react-native';
+import { View, Text, ImageBackground, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, StatusBar, Animated, Image, ScrollView, Linking, Modal, TouchableWithoutFeedback, KeyboardAvoidingView, Platform, Keyboard, TextInput, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Entypo from 'react-native-vector-icons/Entypo';
 import { COLORS, fontFamily, SVGS } from '../../../constants';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import MapView, { Marker } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
 import Toast from "react-native-toast-message";
-import { createItineraries } from '../../services/planTripService';
+import { createItineraries, updateItineraryById } from '../../services/planTripService';
 import LinearGradient from 'react-native-linear-gradient';
+import logger from '../../utils/logger';
+import RBSheet from 'react-native-raw-bottom-sheet';
+import { DELETE_TRIP_DAY_ITEM } from '../../redux/Actions';
 
-const AiPlanTripDetails = ({ navigation, route }) => {
+const AiPlanTripDetails = ({ navigation }) => {
+    const refRBSheet = useRef(null); // Bottom Sheet Ref
     const dispatch = useDispatch();
-    const { destination, startDate, endDate, coordinates, tripDays } = useSelector(state => state.tripDetails);
-    console.log("tripDays", tripDays);
+    const { itineraryId, destination, startDate, endDate, coordinates, tripDays } = useSelector(state => state.tripDetails);
+    console.log("itinerary data", itineraryId, destination, startDate, endDate, coordinates, tripDays)
     const [expanded, setExpanded] = useState(null);
     const [activeTab, setActiveTab] = useState('List');
     const sliderAnim = useRef(new Animated.Value(wp(12))).current; // Start at 'List' position
     const userData = useSelector(state => state.userData);
     const [loading, setLoading] = useState(false);
     const [distances, setDistances] = useState({});
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [email, setEmail] = useState('');
+    const [emailError, setEmailError] = useState("");
+    const [modalVisible, setModalVisible] = useState(false);
+
+    const handleShareItinerary = async () => {
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email.trim()) {
+            setEmailError("Email is required");
+            setTimeout(() => setEmailError(""), 800); // Hide error after 800ms
+            return;
+        }
+        if (!emailRegex.test(email)) {
+            setEmailError("Please enter a valid email address");
+            setTimeout(() => setEmailError(""), 800); // Hide error after 800ms
+            return;
+        }
+
+        setEmailError(""); // Clear error if valid
+        setLoading(true); // Show loading indicator
+
+        const formatDate = (dateString) => {
+            const dateObj = new Date(dateString);
+            return dateObj.toISOString().split("T")[0]; // Convert to YYYY-MM-DD
+        };
+
+        // Format itinerary data for API
+        const itineraryData = {
+            startDate: formatDate(startDate),
+            endDate: formatDate(endDate),
+            recipientEmail: email, // Use entered email
+            dayPlans: tripDays
+                .map((day) => ({
+                    date: formatDate(day.day), // Convert to YYYY-MM-DD
+                    locations: day.items
+                        .filter((item) => item.title) // Ensure valid locations
+                        .map((item) => ({
+                            name: item.title || "Unknown Location",
+                            category: item.type || "activity",
+                            address: item.location?.address || item.description || "No Address",
+                        })),
+                }))
+                .filter((day) => day.locations.length > 0), // Remove empty `locations`
+        };
+
+        try {
+            await ShareItinerary(itineraryData); // Call API function
+
+            // Show success toast
+            Toast.show({
+                type: "success",
+                text1: "Success",
+                text2: "Itinerary shared successfully!",
+            });
+
+            toggelModel(); // Close modal after success
+            setEmail(""); // Reset email input
+        } catch (error) {
+            // Show error toast
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: error.message || "Failed to send itinerary.",
+            });
+            console.error("Email send error:", error);
+        } finally {
+            setLoading(false); // Hide loading indicator
+        }
+    };
+
+    // Modal Toggle Function
+    const toggelModel = () => {
+        setModalVisible((prevVisible) => !prevVisible);
+        setEmailError(""); // Clear error when closing modal
+    };
 
     const handleToggle = (tab) => {
         setActiveTab(tab);
@@ -108,14 +189,14 @@ const AiPlanTripDetails = ({ navigation, route }) => {
                 const destinationName = places[j + 1]?.name || places[j + 1]?.title || "Unnamed Place";
 
                 if (!origin || !destination || !origin.latitude || !origin.longitude || !destination.latitude || !destination.longitude) {
-                    console.warn(`Missing coordinates for ${originName} or ${destinationName}`);
+                    logger.error(`Missing coordinates for ${originName} or ${destinationName}`);
                     continue;
                 }
 
                 const distanceMiles = haversineDistance(origin, destination);
                 const durationText = estimateDuration(distanceMiles, category);
 
-                console.log(`Distance from ${originName} to ${destinationName}: ${distanceMiles} miles, ${durationText}`);
+                logger.info(`Distance from ${originName} to ${destinationName}: ${distanceMiles} miles, ${durationText}`);
 
                 newDistances[`${originName}-${destinationName}`] = {
                     distance: `${distanceMiles} miles`,
@@ -127,10 +208,7 @@ const AiPlanTripDetails = ({ navigation, route }) => {
         setDistances(newDistances);
     };
 
-
     const handleSaveItinerary = async () => {
-        console.log("Trip Details:", tripDays);
-
         try {
             setLoading(true);
 
@@ -308,21 +386,28 @@ const AiPlanTripDetails = ({ navigation, route }) => {
                 },
             };
 
-            console.log("Saving Itinerary:", itineraryData);
+            console.log("Saving Itinerary - ID:", itineraryId);
+            console.log("Saving Itinerary - Data:", JSON.stringify(itineraryData, null, 2))
 
-            // Uncomment when ready to save
-            const response = await createItineraries(itineraryData);
-            console.log("Itinerary Saved:", response);
-
-
-            Toast.show({
-                type: "success",
-                text1: "Success",
-                text2: "Itinerary saved successfully!",
-            });
-            navigation.navigate("Aliternary");
+            // console.log("Saving Itinerary:", itineraryData);
+            // if (itineraryId) {
+            //     await updateItineraryById(itineraryId, itineraryData);
+            //     Toast.show({
+            //         type: "success",
+            //         text1: "Success",
+            //         text2: "Itinerary updated successfully!",
+            //     });
+            // } else {
+            //     await createItineraries(itineraryData);
+            //     Toast.show({
+            //         type: "success",
+            //         text1: "Success",
+            //         text2: "Itinerary saved successfully!",
+            //     });
+            // }
+            // navigation.navigate("TabStack");
         } catch (error) {
-            console.error("Error saving itinerary:", error);
+            logger.error("Error saving itinerary:", error);
 
             Toast.show({
                 type: "error",
@@ -332,6 +417,96 @@ const AiPlanTripDetails = ({ navigation, route }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleItemPress = (item, dayIndex) => {
+        setSelectedItem({ ...item, dayIndex }); // Store item and its day index
+        console.log("Selected Item for deletion:", { dayIndex });
+        refRBSheet.current.open();  // Open the bottom sheet
+    };
+
+    const handlePlaceAction = (place, actionType) => {
+        if (!place || !place.location || !Array.isArray(place.location.coordinates)) {
+            alert("Location data is missing.");
+            return;
+        }
+
+        const { coordinates } = place.location;
+        const [latitude, longitude] = coordinates;
+
+        console.log("Place location coordinates:", coordinates);
+
+        try {
+            switch (actionType) {
+                case "viewPlace":
+                    if (latitude && longitude) {
+                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+                        Linking.openURL(mapsUrl);
+                    } else {
+                        alert("Coordinates not available.");
+                    }
+                    break;
+
+                case "directions":
+                    if (latitude && longitude) {
+                        const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+                        Linking.openURL(directionsUrl);
+                    } else {
+                        alert("Coordinates not available.");
+                    }
+                    break;
+
+                case "website":
+                    let websiteUrl = place.contact?.website?.trim();
+
+                    // If the website URL is missing or empty, open Google
+                    if (!websiteUrl) {
+                        websiteUrl = "https://www.google.com";
+                    }
+                    // If the URL does NOT start with http or https, prepend "https://"
+                    else if (!/^https?:\/\//i.test(websiteUrl)) {
+                        websiteUrl = `https://${websiteUrl}`;
+                    }
+
+                    Linking.openURL(websiteUrl);
+                    break;
+
+                default:
+                    alert("Invalid action.");
+            }
+        } catch (error) {
+            console.error("Error opening URL:", error);
+            alert("Something went wrong. Please try again.");
+        }
+    };
+
+    const handleDeleteItem = () => {
+        if (!selectedItem || selectedItem.dayIndex === undefined) {
+            console.log("No valid item selected for deletion.");
+            return;
+        }
+
+        console.log("Deleting item from Day Index:", selectedItem.dayIndex, "Item ID:", selectedItem.id);
+
+        dispatch({
+            type: DELETE_TRIP_DAY_ITEM,
+            payload: {
+                dayIndex: selectedItem.dayIndex, // Identify the correct day
+                itemId: selectedItem.id,        // Identify the correct item
+            },
+        });
+
+        console.log(`Deleted item with ID: ${selectedItem.id} from dayIndex: ${selectedItem.dayIndex}`);
+
+        // Close the bottom sheet
+        refRBSheet.current.close();
+
+        // Show a success toast message
+        Toast.show({
+            type: "success",
+            text1: "Deleted",
+            text2: "Item removed from itinerary",
+        });
     };
 
 
@@ -354,8 +529,8 @@ const AiPlanTripDetails = ({ navigation, route }) => {
                                 latitudeDelta: 0.1,
                                 longitudeDelta: 0.1,
                             }}
-                            onMapReady={() => console.log("Map Loaded")}
-                            onError={(error) => console.log("Map Error: ", error)}
+                            onMapReady={() => logger.error("Map Loaded")}
+                            onError={(error) => logger.error("Map Error: ", error)}
                         >
                             <Marker
                                 coordinate={{
@@ -425,7 +600,7 @@ const AiPlanTripDetails = ({ navigation, route }) => {
                                     <SVGS.SAVE width={wp(5)} height={hp(2)} />
                                     <Text style={styles.buttonText}>Save</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity activeOpacity={0.5} style={{ height: hp(3.5), width: wp(9), borderRadius: wp(2), marginLeft: wp(3), overflow: 'hidden' }}>
+                                <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.5} style={{ height: hp(3.5), width: wp(9), borderRadius: wp(2), marginLeft: wp(3), overflow: 'hidden' }} >
                                     <LinearGradient
                                         colors={[COLORS.RoyalBlueViolet, COLORS.DeepTeal]}
                                         start={{ x: 0, y: 0.5 }}
@@ -485,139 +660,145 @@ const AiPlanTripDetails = ({ navigation, route }) => {
                                             {/* Hotel Section */}
                                             <OptionButton title="Add Hotel" Icon={SVGS.AIHOTEL} onPress={() => handleAddItem('Hotel', index)} />
                                             {hotels.map((hotel, hotelIndex) => (
-                                                <View key={hotelIndex}>
-                                                    <View style={styles.placeContainer}>
-                                                        <View style={styles.imageContainer}>
-                                                            <Image
-                                                                source={{ uri: hotel.image || (hotel.photos?.length > 0 ? hotel.photos[0].url : "fallback-image-url") }}
-                                                                style={styles.placeImage}
-                                                            />
+                                                <TouchableOpacity key={hotelIndex} onPress={() => handleItemPress(hotel, index)} activeOpacity={0.7}>
+                                                    <View >
+                                                        <View style={styles.placeContainer}>
+                                                            <View style={styles.imageContainer}>
+                                                                <Image
+                                                                    source={{ uri: hotel.image || (hotel.photos?.length > 0 ? hotel.photos[0].url : "fallback-image-url") }}
+                                                                    style={styles.placeImage}
+                                                                />
 
-                                                            <View style={styles.badge}>
-                                                                <Text style={styles.badgeText}>{hotelIndex + 1}</Text>
+                                                                <View style={styles.badge}>
+                                                                    <Text style={styles.badgeText}>{hotelIndex + 1}</Text>
+                                                                </View>
                                                             </View>
+                                                            <View style={styles.placeDetails}>
+                                                                <Text style={styles.placeTitle} numberOfLines={1}>{hotel.title || hotel.name || "Unnamed Hotel"}</Text>
+                                                                <Text style={styles.placeCategory} numberOfLines={1}>⭐ {hotel.rating || "N/A"}</Text>
+                                                            </View>
+                                                            <Text style={styles.placePrice}>${hotel.price || 0}</Text>
                                                         </View>
-                                                        <View style={styles.placeDetails}>
-                                                            <Text style={styles.placeTitle} numberOfLines={1}>{hotel.title || hotel.name || "Unnamed Hotel"}</Text>
-                                                            <Text style={styles.placeCategory} numberOfLines={1}>⭐ {hotel.rating || "N/A"}</Text>
-                                                        </View>
-                                                        <Text style={styles.placePrice}>${hotel.price || 0}</Text>
+
+                                                        {hotelIndex < hotels.length - 1 && (
+                                                            <View style={styles.distanceContainer}>
+                                                                {/* Ensure we use either hotel.name or hotel.title */}
+                                                                {(() => {
+                                                                    const currentHotelName = hotel.name || hotel.title || "Unnamed Hotel";
+                                                                    const nextHotelName = hotels[hotelIndex + 1]?.name || hotels[hotelIndex + 1]?.title || "Unnamed Hotel";
+                                                                    return (
+                                                                        <>
+                                                                            <Text style={styles.distanceText}>
+                                                                                ⏱ {distances[`${currentHotelName}-${nextHotelName}`]?.distance || "N/A"}
+                                                                            </Text>
+                                                                            <Text style={styles.timeText}>
+                                                                                📏 {distances[`${currentHotelName}-${nextHotelName}`]?.duration || "N/A"}
+                                                                            </Text>
+                                                                        </>
+                                                                    );
+                                                                })()}
+                                                            </View>
+                                                        )}
+
+
                                                     </View>
-
-                                                    {hotelIndex < hotels.length - 1 && (
-                                                        <View style={styles.distanceContainer}>
-                                                            {/* Ensure we use either hotel.name or hotel.title */}
-                                                            {(() => {
-                                                                const currentHotelName = hotel.name || hotel.title || "Unnamed Hotel";
-                                                                const nextHotelName = hotels[hotelIndex + 1]?.name || hotels[hotelIndex + 1]?.title || "Unnamed Hotel";
-                                                                return (
-                                                                    <>
-                                                                        <Text style={styles.distanceText}>
-                                                                            ⏱ {distances[`${currentHotelName}-${nextHotelName}`]?.distance || "N/A"}
-                                                                        </Text>
-                                                                        <Text style={styles.timeText}>
-                                                                            📏 {distances[`${currentHotelName}-${nextHotelName}`]?.duration || "N/A"}
-                                                                        </Text>
-                                                                    </>
-                                                                );
-                                                            })()}
-                                                        </View>
-                                                    )}
-
-
-                                                </View>
+                                                </TouchableOpacity>
                                             ))}
 
                                             {/* Activity Section */}
                                             <OptionButton title="Add Activities" Icon={SVGS.ACTIVITY} isImage={true} onPress={() => handleAddItem('Activity', index)} />
                                             {activities.map((activity, activityIndex) => (
-                                                <View key={activityIndex}>
-                                                    <View style={styles.placeContainer}>
-                                                        <View style={styles.imageContainer}>
-                                                            <Image
-                                                                source={{ uri: activity.image || (activity.photos?.length > 0 ? activity.photos[0].url : "fallback-image-url") }}
-                                                                style={styles.placeImage}
-                                                            />
+                                                <TouchableOpacity key={activityIndex} onPress={() => handleItemPress(activity, index)} activeOpacity={0.7}>
+                                                    <View >
+                                                        <View style={styles.placeContainer}>
+                                                            <View style={styles.imageContainer}>
+                                                                <Image
+                                                                    source={{ uri: activity.image || (activity.photos?.length > 0 ? activity.photos[0].url : "fallback-image-url") }}
+                                                                    style={styles.placeImage}
+                                                                />
 
-                                                            {/* <Image source={{ uri: activity.image || "" }} style={styles.placeImage} /> */}
-                                                            <View style={styles.badge}>
-                                                                <Text style={styles.badgeText}>{activityIndex + 1}</Text>
+                                                                {/* <Image source={{ uri: activity.image || "" }} style={styles.placeImage} /> */}
+                                                                <View style={styles.badge}>
+                                                                    <Text style={styles.badgeText}>{activityIndex + 1}</Text>
+                                                                </View>
                                                             </View>
+                                                            <View style={styles.placeDetails}>
+                                                                <Text style={styles.placeTitle} numberOfLines={1}>{activity.title || activity.name || "Unnamed Activity"}</Text>
+                                                                <Text style={styles.placeCategory} numberOfLines={1}>⭐ {activity.rating || "N/A"}</Text>
+                                                            </View>
+                                                            <Text style={styles.placePrice}>${activity.price || 0}</Text>
                                                         </View>
-                                                        <View style={styles.placeDetails}>
-                                                            <Text style={styles.placeTitle} numberOfLines={1}>{activity.title || activity.name || "Unnamed Activity"}</Text>
-                                                            <Text style={styles.placeCategory} numberOfLines={1}>⭐ {activity.rating || "N/A"}</Text>
-                                                        </View>
-                                                        <Text style={styles.placePrice}>${activity.price || 0}</Text>
-                                                    </View>
 
-                                                    {activityIndex < activities.length - 1 && (
-                                                        <View style={styles.distanceContainer}>
-                                                            {(() => {
-                                                                const currentActivityName = activity.name || activity.title || "Unnamed Activity";
-                                                                const nextActivityName = activities[activityIndex + 1]?.name || activities[activityIndex + 1]?.title || "Unnamed Activity";
-                                                                return (
-                                                                    <>
-                                                                        <Text style={styles.distanceText}>
-                                                                            ⏱ {distances[`${currentActivityName}-${nextActivityName}`]?.distance || "N/A"}
-                                                                        </Text>
-                                                                        <Text style={styles.timeText}>
-                                                                            📏 {distances[`${currentActivityName}-${nextActivityName}`]?.duration || "N/A"}
-                                                                        </Text>
-                                                                    </>
-                                                                );
-                                                            })()}
-                                                            {/* <Text style={styles.distanceText}>{distances[`${activity.name}-${activities[activityIndex + 1]?.name}`]?.distance || "N/A"}</Text>
+                                                        {activityIndex < activities.length - 1 && (
+                                                            <View style={styles.distanceContainer}>
+                                                                {(() => {
+                                                                    const currentActivityName = activity.name || activity.title || "Unnamed Activity";
+                                                                    const nextActivityName = activities[activityIndex + 1]?.name || activities[activityIndex + 1]?.title || "Unnamed Activity";
+                                                                    return (
+                                                                        <>
+                                                                            <Text style={styles.distanceText}>
+                                                                                ⏱ {distances[`${currentActivityName}-${nextActivityName}`]?.distance || "N/A"}
+                                                                            </Text>
+                                                                            <Text style={styles.timeText}>
+                                                                                📏 {distances[`${currentActivityName}-${nextActivityName}`]?.duration || "N/A"}
+                                                                            </Text>
+                                                                        </>
+                                                                    );
+                                                                })()}
+                                                                {/* <Text style={styles.distanceText}>{distances[`${activity.name}-${activities[activityIndex + 1]?.name}`]?.distance || "N/A"}</Text>
                                                             <Text style={styles.timeText}>{distances[`${activity.name}-${activities[activityIndex + 1]?.name}`]?.duration || "N/A"}</Text> */}
-                                                        </View>
-                                                    )}
-                                                </View>
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                </TouchableOpacity>
                                             ))}
 
                                             {/* Restaurant Section */}
                                             <OptionButton title="Add Restaurants" Icon={SVGS.RESTAURANTS} onPress={() => handleAddItem('Restaurant', index)} />
                                             {restaurants.map((restaurant, restaurantIndex) => (
-                                                <View key={restaurantIndex}>
-                                                    <View style={styles.placeContainer}>
-                                                        <View style={styles.imageContainer}>
-                                                            <Image
-                                                                source={{ uri: restaurant.image || (restaurant.photos?.length > 0 ? restaurant.photos[0].url : "fallback-image-url") }}
-                                                                style={styles.placeImage}
-                                                            />
+                                                <TouchableOpacity key={restaurantIndex} onPress={() => handleItemPress(restaurant, index)} activeOpacity={0.7}>
+                                                    <View>
+                                                        <View style={styles.placeContainer}>
+                                                            <View style={styles.imageContainer}>
+                                                                <Image
+                                                                    source={{ uri: restaurant.image || (restaurant.photos?.length > 0 ? restaurant.photos[0].url : "fallback-image-url") }}
+                                                                    style={styles.placeImage}
+                                                                />
 
-                                                            {/* <Image source={{ uri: restaurant.image || "" }} style={styles.placeImage} /> */}
-                                                            <View style={styles.badge}>
-                                                                <Text style={styles.badgeText}>{restaurantIndex + 1}</Text>
+                                                                {/* <Image source={{ uri: restaurant.image || "" }} style={styles.placeImage} /> */}
+                                                                <View style={styles.badge}>
+                                                                    <Text style={styles.badgeText}>{restaurantIndex + 1}</Text>
+                                                                </View>
                                                             </View>
+                                                            <View style={styles.placeDetails}>
+                                                                <Text style={styles.placeTitle} numberOfLines={1}>{restaurant.title || restaurant.name || "Unnamed Restaurant"}</Text>
+                                                                <Text style={styles.placeCategory} numberOfLines={1}>⭐ {restaurant.rating || "N/A"}</Text>
+                                                            </View>
+                                                            <Text style={styles.placePrice}>${restaurant.price || 0}</Text>
                                                         </View>
-                                                        <View style={styles.placeDetails}>
-                                                            <Text style={styles.placeTitle} numberOfLines={1}>{restaurant.title || restaurant.name || "Unnamed Restaurant"}</Text>
-                                                            <Text style={styles.placeCategory} numberOfLines={1}>⭐ {restaurant.rating || "N/A"}</Text>
-                                                        </View>
-                                                        <Text style={styles.placePrice}>${restaurant.price || 0}</Text>
-                                                    </View>
 
-                                                    {restaurantIndex < restaurants.length - 1 && (
-                                                        <View style={styles.distanceContainer}>
-                                                            {(() => {
-                                                                const currentRestaurantName = restaurant.name || restaurant.title || "Unnamed Restaurant";
-                                                                const nextRestaurantName = restaurants[restaurantIndex + 1]?.name || restaurants[restaurantIndex + 1]?.title || "Unnamed Restaurant";
-                                                                return (
-                                                                    <>
-                                                                        <Text style={styles.distanceText}>
-                                                                            ⏱ {distances[`${currentRestaurantName}-${nextRestaurantName}`]?.distance || "N/A"}
-                                                                        </Text>
-                                                                        <Text style={styles.timeText}>
-                                                                            📏 {distances[`${currentRestaurantName}-${nextRestaurantName}`]?.duration || "N/A"}
-                                                                        </Text>
-                                                                    </>
-                                                                );
-                                                            })()}
-                                                            {/* <Text style={styles.distanceText}>{distances[`${restaurant.name}-${restaurants[restaurantIndex + 1]?.name}`]?.distance || "N/A"}</Text>
+                                                        {restaurantIndex < restaurants.length - 1 && (
+                                                            <View style={styles.distanceContainer}>
+                                                                {(() => {
+                                                                    const currentRestaurantName = restaurant.name || restaurant.title || "Unnamed Restaurant";
+                                                                    const nextRestaurantName = restaurants[restaurantIndex + 1]?.name || restaurants[restaurantIndex + 1]?.title || "Unnamed Restaurant";
+                                                                    return (
+                                                                        <>
+                                                                            <Text style={styles.distanceText}>
+                                                                                ⏱ {distances[`${currentRestaurantName}-${nextRestaurantName}`]?.distance || "N/A"}
+                                                                            </Text>
+                                                                            <Text style={styles.timeText}>
+                                                                                📏 {distances[`${currentRestaurantName}-${nextRestaurantName}`]?.duration || "N/A"}
+                                                                            </Text>
+                                                                        </>
+                                                                    );
+                                                                })()}
+                                                                {/* <Text style={styles.distanceText}>{distances[`${restaurant.name}-${restaurants[restaurantIndex + 1]?.name}`]?.distance || "N/A"}</Text>
                                                             <Text style={styles.timeText}>{distances[`${restaurant.name}-${restaurants[restaurantIndex + 1]?.name}`]?.duration || "N/A"}</Text> */}
-                                                        </View>
-                                                    )}
-                                                </View>
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                </TouchableOpacity>
                                             ))}
 
                                         </View>
@@ -629,7 +810,117 @@ const AiPlanTripDetails = ({ navigation, route }) => {
 
                 </View>
             </ScrollView>
-        </SafeAreaView>
+            {/* Bottom Sheet */}
+            <RBSheet
+                ref={refRBSheet}
+                height={hp(25)}
+                openDuration={250}
+                customStyles={{
+                    container: {
+                        borderTopLeftRadius: wp(5),
+                        borderTopRightRadius: wp(5),
+                        padding: wp(3),
+                        backgroundColor: COLORS.white,
+                    }
+                }}
+            >
+                <View>
+                    {/* Option: View the Place */}
+                    <TouchableOpacity style={styles.bottomSheetButton} onPress={() => handlePlaceAction(selectedItem, "viewPlace")} >
+                        <Ionicons name="location-outline" size={wp(6)} color={COLORS.darkgray} />
+                        <Text style={styles.bottomSheetText}>View the Place</Text>
+                    </TouchableOpacity>
+
+                    {/* Option: Directions */}
+                    <TouchableOpacity style={styles.bottomSheetButton} onPress={() => handlePlaceAction(selectedItem, "directions")}>
+                        <Ionicons name="paper-plane-outline" size={wp(6)} color={COLORS.darkgray} />
+                        <Text style={styles.bottomSheetText}>Directions</Text>
+                    </TouchableOpacity>
+
+                    {/* Option: Website */}
+                    <TouchableOpacity style={[styles.bottomSheetButton, { borderBottomWidth: 0 }]} onPress={() => handlePlaceAction(selectedItem, "website")}>
+                        <Ionicons name="globe-outline" size={wp(6)} color={COLORS.darkgray} />
+                        <Text style={styles.bottomSheetText}>Website</Text>
+                    </TouchableOpacity>
+
+                    {/* Option: Delete from the List */}
+                    <TouchableOpacity style={styles.bottomSheetButton} onPress={handleDeleteItem}>
+                        <Ionicons name="trash-outline" size={wp(6)} color={COLORS.red} />
+                        <Text style={[styles.bottomSheetText, { color: COLORS.red }]}>Delete from the List</Text>
+                    </TouchableOpacity>
+                </View>
+            </RBSheet>
+
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={toggelModel}
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View style={{
+                        flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)', width: '100%', // Full width
+                        height: '100%', // Full height
+                        position: 'absolute', // Cover the entire screen
+                        top: 0,
+                        left: 0
+                    }}>
+
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === "ios" ? "padding" : "height"}
+                            style={{
+                                width: "100%", justifyContent: "center",
+                                alignItems: "center",
+                            }}
+                        >
+                            <View style={styles.reportModelContainer}>
+
+                                {/* 🔹 Header with LinearGradient */}
+                                <LinearGradient
+                                    colors={[COLORS.RoyalBlueViolet, COLORS.DeepTeal]}
+                                    start={{ x: 0, y: 0.5 }}
+                                    end={{ x: 1, y: 0.5 }}
+                                    style={styles.modalHeader} // Use styles to apply border radius
+                                >
+                                    <Text style={styles.headerText}>Share Itinerary</Text>
+                                    <TouchableOpacity onPress={toggelModel}>
+                                        <Entypo name="cross" size={hp(3)} color={COLORS.white} />
+                                    </TouchableOpacity>
+                                </LinearGradient>
+
+                                <View style={{ paddingHorizontal: 4, marginVertical: hp(2) }}>
+                                    <View style={styles.inputContainer}>
+                                        <TextInput
+                                            placeholder="Enter Email"
+                                            placeholderTextColor={COLORS.Midgray}
+                                            keyboardType='email-address'
+                                            value={email}
+                                            onChangeText={(text) => setEmail(text)}
+                                            style={styles.input}
+                                        />
+                                    </View>
+
+                                    {/* Error Message (Visible only if emailError exists) */}
+                                    {emailError ? (
+                                        <Text style={styles.errorText}>{emailError}</Text>
+                                    ) : null}
+
+                                    <View style={{ flexDirection: 'row', marginTop: hp(1), borderRadius: 10, justifyContent: 'flex-end' }}>
+                                        <TouchableOpacity style={styles.sendButton} onPress={handleShareItinerary}>
+                                            {loading ? (
+                                                <ActivityIndicator color={COLORS.white} size="large" />
+                                            ) : (
+                                                <Text style={styles.sendButtonText}>Send</Text>
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </View>
+                        </KeyboardAvoidingView>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+        </SafeAreaView >
     );
 };
 
@@ -865,6 +1156,77 @@ const styles = StyleSheet.create({
         paddingHorizontal: wp(3),
         color: COLORS.darkgray,
         fontFamily: fontFamily.FONTS.Medium,
+    },
+    bottomSheetButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: hp(1.5),
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.Midgray,
+    },
+    bottomSheetText: {
+        fontSize: hp(2),
+        fontFamily: fontFamily.FONTS.Medium,
+        color: COLORS.darkgray,
+        marginLeft: wp(3),
+    },
+    inputContainer: {
+        width: '98%',
+        marginHorizontal: wp(1),
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: hp(1),
+        height: hp(6),
+        borderColor: COLORS.Midgray,
+        borderWidth: 0.5,
+        borderRadius: wp(2),
+        paddingLeft: wp(2),
+    },
+    input: {
+        flex: 1,
+        paddingLeft: wp(2),
+        color: COLORS.darkgray,
+        fontFamily: fontFamily.FONTS.Medium,
+        fontSize: hp(2),
+    },
+    reportModelContainer: {
+        backgroundColor: COLORS.white,
+        width: '95%',
+        borderRadius: wp(3),
+        overflow: "hidden", // Ensures border radius applies
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: hp(1.8),
+        borderTopRightRadius: wp(2),
+        borderTopLeftRadius: wp(2),
+    },
+    headerText: {
+        fontFamily: fontFamily.FONTS.Medium,
+        fontSize: hp(2.4),
+        color: COLORS.white,
+    },
+    errorText: {
+        color: "red",
+        fontSize: hp(2),
+        fontFamily: fontFamily.FONTS.Medium,
+        marginTop: hp(1),
+        marginLeft: wp(1),
+    },
+    sendButton: {
+        backgroundColor: COLORS.red,
+        borderRadius: wp(2),
+        height: hp(4.5),
+        width: wp(30),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sendButtonText: {
+        fontFamily: fontFamily.FONTS.Medium,
+        fontSize: hp(2.2),
+        color: COLORS.white,
     },
 });
 

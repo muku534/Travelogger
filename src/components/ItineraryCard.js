@@ -20,8 +20,6 @@ const ItineraryCard = ({ item, onPress, showAIBadge = false, }) => {
     const refRBSheet = useRef(null); // Bottom Sheet Ref
     const dispatch = useDispatch();
 
-    console.log("Itinerary Card:", item.tripDetails);
-
     const openWebsite = () => {
         refRBSheet.current.close(); // Close BottomSheet first
 
@@ -133,8 +131,6 @@ const ItineraryCard = ({ item, onPress, showAIBadge = false, }) => {
         }, 300);
     };
 
-
-
     // Function to handle deletion
     const handleDelete = async () => {
         refRBSheet.current.close(); // Close BottomSheet before deletion
@@ -231,7 +227,7 @@ const ItineraryCard = ({ item, onPress, showAIBadge = false, }) => {
             {/* Bottom Sheet */}
             <RBSheet
                 ref={refRBSheet}
-                height={hp(25)}
+                height={hp(8)}
                 openDuration={250}
                 customStyles={{
                     container: {
@@ -243,25 +239,6 @@ const ItineraryCard = ({ item, onPress, showAIBadge = false, }) => {
                 }}
             >
                 <View>
-                    {/* Option: View the Place */}
-                    <TouchableOpacity style={styles.bottomSheetButton} onPress={openMapLocation}>
-                        <Ionicons name="location-outline" size={wp(6)} color={COLORS.darkgray} />
-                        <Text style={styles.bottomSheetText}>View the Place</Text>
-                    </TouchableOpacity>
-
-                    {/* Option: Directions */}
-                    <TouchableOpacity style={styles.bottomSheetButton} onPress={openDirections}>
-                        <Ionicons name="paper-plane-outline" size={wp(6)} color={COLORS.darkgray} />
-                        <Text style={styles.bottomSheetText}>Directions</Text>
-                    </TouchableOpacity>
-
-                    {/* Option: Website */}
-                    <TouchableOpacity style={styles.bottomSheetButton} onPress={openWebsite}>
-                        <Ionicons name="globe-outline" size={wp(6)} color={COLORS.darkgray} />
-                        <Text style={styles.bottomSheetText}>Website</Text>
-                    </TouchableOpacity>
-
-                    {/* Option: Delete from the List */}
                     <TouchableOpacity style={styles.bottomSheetButton} onPress={handleDelete}>
                         <Ionicons name="trash-outline" size={wp(6)} color={COLORS.red} />
                         <Text style={[styles.bottomSheetText, { color: COLORS.red }]}>Delete from the List</Text>
@@ -338,8 +315,6 @@ const styles = {
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: hp(1.5),
-        borderBottomWidth: 0.5,
-        borderBottomColor: COLORS.Midgray,
     },
     bottomSheetText: {
         fontSize: hp(2),

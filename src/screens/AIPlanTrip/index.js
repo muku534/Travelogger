@@ -11,6 +11,7 @@ import Toast from 'react-native-toast-message';
 import usePlaceSearch from "../../hooks/usePlaceSearch";
 import LoadingScreen from "../../components/LoadingScreen";
 import { SET_TRIP_DETAILS } from "../../redux/Actions";
+import logger from '../../utils/logger'
 
 const AIPlanTrip = ({ navigation }) => {
     const { destination, suggestions, showSuggestions, selectedLocation, handleDestinationChange, handlePlaceSelect } = usePlaceSearch();
@@ -93,21 +94,20 @@ const AIPlanTrip = ({ navigation }) => {
             endDate: endDate.toISOString().split("T")[0],
             travelers: selectedTravelType,
             budget: selectedBudget,
+            coordinates: selectedLocation,
             cuisines: Array.isArray(selectedCuisine) ? selectedCuisine : [selectedCuisine],
         };
 
-        console.log("Sending Data:", itineraryData); // Debugging
 
         try {
             setLoading(true); // Show loading indicator
 
             const response = await createAIItineraries(itineraryData);
-            console.log("API Response:", response);
 
             Toast.show({
                 type: "success",
                 text1: "Success",
-                text2: "Itinerary created successfully!",
+                text2: "Itinerary generated successfully!",
             });
 
             setLoading(false); // Hide loading
@@ -125,12 +125,12 @@ const AIPlanTrip = ({ navigation }) => {
                 }
             }));
 
-            console.log("Formatted Trip Days:", tripDays); // Debugging
             // Dispatch to Redux Store
             dispatch({
                 type: SET_TRIP_DETAILS,
                 payload: {
                     tripDetails: {
+                        itineraryId: null,
                         destination: response.tripDetails?.destination?.name || "",
                         startDate: response.tripDetails?.startDate || "",
                         endDate: response.tripDetails?.endDate || "",
@@ -146,7 +146,7 @@ const AIPlanTrip = ({ navigation }) => {
             }, 300);
 
         } catch (error) {
-            console.error("Error generating itinerary:", error?.response || error);
+            logger.error("Error generating itinerary:", error?.response || error);
             Toast.show({
                 type: "error",
                 text1: "Error",
@@ -159,7 +159,7 @@ const AIPlanTrip = ({ navigation }) => {
 
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white, }}>
             <StatusBar backgroundColor={COLORS.white} barStyle={'dark-content'} />
             {loading ? (
                 < LoadingScreen />
@@ -179,7 +179,7 @@ const AIPlanTrip = ({ navigation }) => {
 
                         {/* Suggestions List */}
                         {showSuggestions && (
-                            <Animated.View style={[styles.suggestionBox, { opacity: suggestionBoxRef }]}>
+                            <Animated.View style={[styles.suggestionBox, { opacity: suggestionBoxRef, zIndex: showSuggestions ? 2 : -1 }]}>
                                 <FlatList
                                     data={suggestions}
                                     keyExtractor={(item) => item.place_id}
@@ -193,14 +193,16 @@ const AIPlanTrip = ({ navigation }) => {
                         )}
 
                         {/* Start Date Picker */}
-                        <Text style={styles.label}>Start Date</Text>
-                        <View style={styles.dateInput}>
-                            <Text style={styles.dateText}>
-                                {startDate ? startDate.toDateString() : "Select Start Date"}
-                            </Text>
-                            <TouchableOpacity onPress={() => setOpenStartDate(true)}>
-                                <SVGS.CALENDAR width={wp(6)} height={hp(6)} />
-                            </TouchableOpacity>
+                        <View style={{ zIndex: showSuggestions ? -1 : 1 }}>
+                            <Text style={styles.label}>Start Date</Text>
+                            <View style={styles.dateInput}>
+                                <Text style={styles.dateText}>
+                                    {startDate ? startDate.toDateString() : "Select Start Date"}
+                                </Text>
+                                <TouchableOpacity onPress={() => setOpenStartDate(true)}>
+                                    <SVGS.CALENDAR width={wp(6)} height={hp(6)} />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                         {openStartDate && (
                             <DatePicker

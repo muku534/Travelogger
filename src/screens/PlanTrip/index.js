@@ -1,8 +1,6 @@
-import { GOOGLE_API_KEY } from "@env";
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Alert, FlatList, Animated } from "react-native";
 import DatePicker from "react-native-date-picker";
-import Ionicons from "react-native-vector-icons/Ionicons";
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import { COLORS, fontFamily, SVGS } from "../../../constants";
 import Button from "../../components/Button";
@@ -10,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import usePlaceSearch from "../../hooks/usePlaceSearch";
 import { SET_TRIP_DETAILS } from "../../redux/Actions";
 import CommonHeader from "../../components/CommonHeader";
+import Toast from "react-native-toast-message";
 
 const PlanTrip = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -46,12 +45,20 @@ const PlanTrip = ({ navigation }) => {
     setOpenEnd(false);
 
     if (!startDate) {
-      Alert.alert("Select Start Date", "Please select a start date first.");
+      Toast.show({
+        type: "error",
+        text1: "Select Start Date",
+        text2: "Please select a start date first.",
+      });
       return;
     }
 
     if (date <= startDate) {
-      Alert.alert("Invalid Date", "End date must be after the start date.");
+      Toast.show({
+        type: "error",
+        text1: "Invalid Date",
+        text2: "End date must be after the start date.",
+      });
       return;
     }
 
@@ -60,20 +67,28 @@ const PlanTrip = ({ navigation }) => {
 
   const handleContinue = () => {
     if (!destination.trim()) {
-      Alert.alert("Please enter a destination");
+      Toast.show({
+        type: "error",
+        text1: "Missing Destination",
+        text2: "Please enter a destination.",
+      });
       return;
     }
     if (!startDate || !endDate) {
-      Alert.alert("Please select both start and end dates");
+      Toast.show({
+        type: "error",
+        text1: "Date Selection",
+        text2: "Please select both start and end dates.",
+      });
       return;
     }
 
     // ✅ Generate tripDays dynamically before dispatching
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const numberOfDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    const numberOfDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 
-    const generatedDays = Array.from({ length: numberOfDays }, (_, i) => {
+    const generatedDays = Array.from({ length: numberOfDays}, (_, i) => {
       const newDate = new Date(start);
       newDate.setDate(start.getDate() + i);
 
@@ -84,13 +99,12 @@ const PlanTrip = ({ navigation }) => {
       };
     });
 
-    console.log("Generated tripDays:", generatedDays); // ✅ Debugging check
-
     // ✅ Now tripDays is properly initialized before dispatching
     dispatch({
       type: SET_TRIP_DETAILS,
       payload: {
         tripDetails: {
+          id: null,
           destination: destination,
           startDate: startDate.toISOString().split("T")[0],
           endDate: endDate.toISOString().split("T")[0],
@@ -115,7 +129,7 @@ const PlanTrip = ({ navigation }) => {
 
         {/* Suggestions List */}
         {showSuggestions && (
-          <Animated.View style={[styles.suggestionBox, { opacity: suggestionBoxRef }]}>
+          <Animated.View style={[styles.suggestionBox, { opacity: suggestionBoxRef, zIndex: showSuggestions ? 2 : -1 }]}>
             <FlatList
               data={suggestions}
               keyExtractor={(item) => item.place_id}
@@ -129,14 +143,16 @@ const PlanTrip = ({ navigation }) => {
         )}
 
         {/* Start Date */}
-        <Text style={styles.label}>Start Date</Text>
-        <View style={styles.datePicker}>
-          <Text style={{ color: COLORS.darkgray }}>
-            {startDate ? startDate.toDateString() : "Select Date"}
-          </Text>
-          <TouchableOpacity onPress={() => setOpenStart(true)}>
-            <SVGS.CALENDARICON width={wp(6)} height={hp(3)} />
-          </TouchableOpacity>
+        <View style={{ zIndex: showSuggestions ? -1 : 1 }}>
+          <Text style={styles.label}>Start Date</Text>
+          <View style={styles.datePicker}>
+            <Text style={{ color: COLORS.darkgray }}>
+              {startDate ? startDate.toDateString() : "Select Date"}
+            </Text>
+            <TouchableOpacity onPress={() => setOpenStart(true)}>
+              <SVGS.CALENDARICON width={wp(6)} height={hp(3)} />
+            </TouchableOpacity>
+          </View>
         </View>
         {/* ✅ Fix: Ensure `openStart` is triggered correctly */}
         {openStart && (
@@ -258,13 +274,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // suggestionItem: {
-  //   borderBottomColor: COLORS.Midgray,
-  //   borderBottomWidth: 1,
-  //   color: COLORS.darkgray,
-  //   fontSize: wp(4),
-  //   padding: wp(2),
-  //   backgroundColor: COLORS.white
-  // },
-  // suggestionText: { fontSize: hp(2.1), color: COLORS.darkgray, fontFamily: fontFamily.FONTS.bold },
 });

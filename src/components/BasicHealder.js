@@ -2,17 +2,19 @@ import React from "react";
 import { View, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "./Pixel/Index";
 import { COLORS, Images, SVGS } from "../../constants";
+import { useNavigation } from "@react-navigation/native";
 
 const BasicHeader = () => {
+    const navigation = useNavigation()
     return (
         <View style={styles.header}>
             <Image source={Images.travelLoggerLogo} style={styles.logo} />
 
             <View style={styles.headerIcons}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("SearchScreen", { isSearchOnly: true })}>
                     <SVGS.SEARCH width={wp(8.5)} height={hp(4)} />
                 </TouchableOpacity>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("NotificationScreen")}>
                     <SVGS.BELL width={wp(8.5)} height={hp(4)} style={styles.notificationIcon} />
                 </TouchableOpacity>
             </View>

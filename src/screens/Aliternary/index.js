@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, FlatList, SafeAreaView, StatusBar, ActivityIndicator, RefreshControl } from "react-native";
+import { View, Text, FlatList, SafeAreaView, StatusBar, ActivityIndicator, RefreshControl } from "react-native";
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
-import { COLORS, fontFamily, Images, SVGS } from "../../../constants";
+import { COLORS, fontFamily, SVGS } from "../../../constants";
 import ItineraryCard from "../../components/ItineraryCard";
 import BasicHeader from "../../components/BasicHealder";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FETCH_ITINERARIES, SET_TRIP_DETAILS } from "../../redux/Actions";
 import { getItineraries } from "../../services/planTripService";
 import { useDispatch, useSelector } from "react-redux";
+import logger from '../../utils/logger';
 
 const AIIternary = ({ navigation }) => {
     const dispatch = useDispatch();
@@ -26,7 +26,6 @@ const AIIternary = ({ navigation }) => {
                     type: FETCH_ITINERARIES,
                     payload: { Itineraries: response },
                 });
-                console.log("this is the Itinerary", response)
             } else {
                 logger.error("somthing went wrong to fetch the Itinerary")
             }
@@ -94,6 +93,7 @@ const AIIternary = ({ navigation }) => {
                                             type: SET_TRIP_DETAILS,
                                             payload: {
                                                 tripDetails: {
+                                                    itineraryId: item.id,
                                                     destination: item.tripDetails?.destination.name,
                                                     startDate: item.tripDetails?.startDate,
                                                     endDate: item.tripDetails?.endDate,

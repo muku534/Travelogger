@@ -27,7 +27,6 @@ const MyItinerary = ({ navigation }) => {
                     type: FETCH_ITINERARIES,
                     payload: { Itineraries: response },
                 });
-                console.log("this is the Itinerary", response)
             } else {
                 logger.error("somthing went wrong to fetch the Itinerary")
             }
@@ -70,8 +69,6 @@ const MyItinerary = ({ navigation }) => {
                                 <ItineraryCard
                                     item={item}
                                     onPress={() => {
-                                        console.log("this is the item", item.days);
-
                                         const tripDays = item.days.map((day, index) => ({
                                             id: `day-${index + 1}`,
                                             day: new Date(day.date).toDateString(),
@@ -95,6 +92,7 @@ const MyItinerary = ({ navigation }) => {
                                             type: SET_TRIP_DETAILS,
                                             payload: {
                                                 tripDetails: {
+                                                    itineraryId: item.id,
                                                     destination: item.tripDetails?.destination.name,
                                                     startDate: item.tripDetails?.startDate,
                                                     endDate: item.tripDetails?.endDate,

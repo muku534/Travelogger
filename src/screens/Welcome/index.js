@@ -92,6 +92,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: COLORS.black,
+        paddingTop: Platform.OS === 'ios' ? hp(4) : 0
     },
     background: {
         ...StyleSheet.absoluteFillObject, // Ensures it takes up the full screen

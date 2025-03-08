@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, TextInput } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
-import { COLORS } from "../../../constants";
+import { COLORS, fontFamily } from "../../../constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Button from '../../components/Button';
 import OTPVerification from '../../../assets/icons/OTP_Verification.svg'
-import fontFamily from '../../../constants/fontFamily';
+import logger from '../../utils/logger';
 
 const OtpVerification = ({ navigation }) => {
     const [otp, setOtp] = useState(['', '', '', '']);
@@ -35,7 +35,7 @@ const OtpVerification = ({ navigation }) => {
     // Handle OTP Submit
     const handleSubmit = () => {
         const enteredOtp = otp.join('');
-        console.log("Entered OTP:", enteredOtp);
+        logger.info("Entered OTP:", enteredOtp);
         navigation.navigate("CreatePassword")
         // Perform OTP verification logic here
     };
@@ -133,6 +133,7 @@ const styles = StyleSheet.create({
         height: wp(12),
         borderRadius: wp(2),
         borderColor: COLORS.gray,
+        color: COLORS.darkgray,
         borderWidth: 1,
         textAlign: 'center',
         fontSize: wp(5),

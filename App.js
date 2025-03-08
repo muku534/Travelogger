@@ -2,7 +2,7 @@ import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import TabStack from './src/navigation/BottomNavigation';
-import { AIIternary, AIPlainIntro, AIPlainTrip, AIPlaintripDetails, ChangePassword, CreatePassword, EditProfile, ForgotPassword, Home, Login, MyIternary, OtpVerification, PlanTrip, PlanTripDetails, Privacy, Profile, Search, Signup, SocialAuth, Splash, Terms, Welcome } from './src/screens';
+import { AIIternary, AIPlainIntro, AIPlainTrip, AIPlaintripDetails, BlogScreen, ChangePassword, CreatePassword, EditProfile, ForgotPassword, Home, Login, MyIternary, NotificationScreen, OtpVerification, PlanTrip, PlanTripDetails, Privacy, Profile, Search, Signup, SocialAuth, Splash, Terms, Welcome } from './src/screens';
 import { Provider } from 'react-redux';
 import GlobalErrorBoundary from './src/utils/ErrorBoundary';
 import store from './src/redux/Store';
@@ -28,6 +28,7 @@ const App = () => {
                         <Stack.Screen name="Welcome" component={Welcome} options={{ headerShown: false }} />
                         <Stack.Screen name="SearchScreen" component={Search} options={{ headerShown: false }} />
                         <Stack.Screen name="Profile" component={Profile} options={{ headerShown: false }} />
+                        <Stack.Screen name="NotificationScreen" component={NotificationScreen} options={{ headerShown: false }} />
                         <Stack.Screen name="SocialAuth" component={SocialAuth} options={{ headerShown: false }} />
                         <Stack.Screen name="ChangePassword" component={ChangePassword} options={{ headerShown: false }} />
                         <Stack.Screen name="OtpVerification" component={OtpVerification} options={{ headerShown: false }} />
@@ -39,6 +40,7 @@ const App = () => {
                         <Stack.Screen name="Privacy" component={Privacy} options={{ headerShown: false }} />
                         <Stack.Screen name="EditProfile" component={EditProfile} options={{ headerShown: false }} />
                         <Stack.Screen name="Terms" component={Terms} options={{ headerShown: false }} />
+                        <Stack.Screen name="BlogScreen" component={BlogScreen} options={{ headerShown: false }} />
                     </Stack.Navigator>
                 </NavigationContainer>
                 <Toast />

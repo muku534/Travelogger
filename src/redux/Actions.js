@@ -65,9 +65,11 @@ export const addTripDayItem = (dayIndex, item) => ({
     payload: { dayIndex, item },
 });
 
-export const deleteTripDayItem = () => ({
+export const deleteTripDayItem = (dayIndex, itemId) => ({
     type: DELETE_TRIP_DAY_ITEM,
+    payload: { dayIndex, itemId },
 });
+
 
 // Itineraries
 
