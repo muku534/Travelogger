@@ -23,6 +23,7 @@ import Terms from './Terms/index.js';
 import BlogScreen from './BlogScreen/index.js';
 import NotificationScreen from './notification/index.js';
 import Explore from './Explore/index.js';
+import ContactUs from './ContactUs';
 
 export {
     Splash,
@@ -49,5 +50,6 @@ export {
     Terms,
     BlogScreen,
     NotificationScreen,
-    Explore
+    Explore,
+    ContactUs
 };

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView, StatusBar, ScrollView, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView, StatusBar, ScrollView, Alert, Linking, Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from '../../components/Pixel/Index';
 import { COLORS, SVGS } from '../../../constants';
@@ -11,7 +11,7 @@ import logger from '../../utils/logger';
 import { storeDataInAsyncStorage } from '../../utils/Helper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from "react-native-toast-message";
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import AndroidOpenSettings from 'react-native-android-open-settings'
 
 const Profile = ({ navigation }) => {
     const dispatch = useDispatch();
@@ -93,10 +93,13 @@ const Profile = ({ navigation }) => {
         );
     };
 
+    const openNotificationSettings = () => {
+        AndroidOpenSettings.appNotificationSettings()
+    };
+
+
     const handleLogout = async () => {
         try {
-            await GoogleSignin.revokeAccess();
-            await GoogleSignin.signOut();
             await AsyncStorage.removeItem('userData'); // Clear stored user data
             navigation.reset({ index: 0, routes: [{ name: 'SocialAuth' }] }); // Navigate to Login
         } catch (error) {
@@ -104,15 +107,15 @@ const Profile = ({ navigation }) => {
         }
     };
 
-    
+
     // Menu Items with Navigation Screens
     const menuItems = [
         { label: 'Edit Profile', icon: <SVGS.EDIT_PROFILE width={hp(3.3)} height={hp(3)} />, screen: 'EditProfile' },
         { label: 'Change Password', icon: <SVGS.PASSWORD width={hp(3.3)} height={hp(3)} />, screen: 'ChangePassword' },
-        { label: 'Notification Settings', icon: <SVGS.NOTIFICATION width={hp(3.3)} height={hp(3)} />, screen: '' },
+        { label: 'Notification Settings', icon: <SVGS.NOTIFICATION width={hp(3.3)} height={hp(3)} />, action: openNotificationSettings },
         { label: 'Privacy Policy', icon: <SVGS.PRIVACY width={hp(3.3)} height={hp(3)} />, screen: 'Privacy' },
         { label: 'Terms and Conditions', icon: <SVGS.TERMS width={hp(3.3)} height={hp(3)} />, screen: 'Terms' },
-        { label: 'Contact Us', icon: <SVGS.CONTACT width={hp(3.3)} height={hp(3)} />, screen: '' },
+        { label: 'Contact Us', icon: <SVGS.CONTACT width={hp(3.3)} height={hp(3)} />, screen: 'ContactUs' },
         { label: 'Delete Account', icon: <SVGS.DELETE_ACCOUNT width={hp(3.3)} height={hp(3)} />, action: handleDeleteAccount },
         { label: 'Logout', icon: <SVGS.LOGOUT width={hp(3.3)} height={hp(3)} />, action: handleLogout },
     ];

@@ -2,7 +2,7 @@ import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import TabStack from './src/navigation/BottomNavigation';
-import { AIIternary, AIPlainIntro, AIPlainTrip, AIPlaintripDetails, BlogScreen, ChangePassword, CreatePassword, EditProfile, Explore, ForgotPassword, Home, Login, MyIternary, NotificationScreen, OtpVerification, PlanTrip, PlanTripDetails, Privacy, Profile, Search, Signup, SocialAuth, Splash, Terms, Welcome } from './src/screens';
+import { AIIternary, AIPlainIntro, AIPlainTrip, AIPlaintripDetails, BlogScreen, ChangePassword, ContactUs, CreatePassword, EditProfile, Explore, ForgotPassword, Home, Login, MyIternary, NotificationScreen, OtpVerification, PlanTrip, PlanTripDetails, Privacy, Profile, Search, Signup, SocialAuth, Splash, Terms, Welcome } from './src/screens';
 import { Provider } from 'react-redux';
 import GlobalErrorBoundary from './src/utils/ErrorBoundary';
 import store from './src/redux/Store';
@@ -28,6 +28,7 @@ const App = () => {
                         <Stack.Screen name="Welcome" component={Welcome} options={{ headerShown: false }} />
                         <Stack.Screen name="SearchScreen" component={Search} options={{ headerShown: false }} />
                         <Stack.Screen name="Profile" component={Profile} options={{ headerShown: false }} />
+                        <Stack.Screen name="ContactUs" component={ContactUs} options={{ headerShown: false }} />
                         <Stack.Screen name="NotificationScreen" component={NotificationScreen} options={{ headerShown: false }} />
                         <Stack.Screen name="Explore" component={Explore} options={{ headerShown: false }} />
                         <Stack.Screen name="SocialAuth" component={SocialAuth} options={{ headerShown: false }} />
