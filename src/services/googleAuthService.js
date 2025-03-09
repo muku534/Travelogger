@@ -1,3 +1,4 @@
+import { GOOGLE_CLOUD_API } from "@env";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { googleLogin } from './authService';
 import { storeDataInAsyncStorage } from '../utils/Helper';
@@ -7,21 +8,28 @@ import Toast from 'react-native-toast-message';
 
 export const signInWithGoogle = async (navigation, dispatch) => {
     try {
+        // Configure Google Sign-In
         GoogleSignin.configure({
-            webClientId: '181504532584-8o1jdaa0cn6ves6tb1oj1p74u6hc85kc.apps.googleusercontent.com',
+            webClientId: GOOGLE_CLOUD_API,
             offlineAccess: true,
-            prompt: 'select_account',
+            prompt: 'select_account', // Always prompt to select an account
             scopes: ['profile', 'email'],
         });
 
+        // Ensure Google Play Services are available
         await GoogleSignin.hasPlayServices();
+
+        // Sign out first to always show "Select Account" screen
+        await GoogleSignin.signOut();
+
+        // Now proceed with sign-in
         const userInfo = await GoogleSignin.signIn();
-        const { idToken, accessToken } = await GoogleSignin.getTokens();
+        const { idToken } = await GoogleSignin.getTokens();
 
         console.log("this is the userInfo:", userInfo);
         console.log("this is the idToken:", idToken);
-        console.log("this is the accessToken:", accessToken);
 
+        // Send token to backend
         const response = await googleLogin({ idToken });
 
         console.log("API response", response);
