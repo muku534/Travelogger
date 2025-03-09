@@ -1,4 +1,3 @@
-import 'react-native-get-random-values';
 import { GOOGLE_API_KEY } from "@env";
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, FlatList, TextInput, StyleSheet, SafeAreaView, StatusBar, Image, Animated, Alert } from 'react-native';
@@ -7,44 +6,18 @@ import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../com
 import { COLORS, fontFamily, Images } from '../../../constants';
 import MapView, { Marker } from 'react-native-maps';
 import Ionicons from "react-native-vector-icons/Ionicons";
-import Button from '../../components/Button';
 import axios from "axios";
 import debounce from "lodash/debounce";
-import { useDispatch } from "react-redux";
-import { ADD_TRIP_DAY_ITEM } from "../../redux/Actions";
 import logger from '../../utils/logger';
-import Toast from "react-native-toast-message";
-import { v4 as uuidv4 } from 'uuid';
 
-
-const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Radius of the Earth in km
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in km
-};
-
-const SearchScreen = ({ route }) => {
+const Explore = ({ route }) => {
     const navigation = useNavigation();
-    const dispatch = useDispatch();
-
-    const coordinates = route.params.coordinates;
-    console.log("coordinates from routes", coordinates)
-    const type = route.params.type;
-    const dayIndex = route.params.dayIndex;
-
     const [destination, setDestination] = useState("");
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState(null);
     const [selectedPlaceDetails, setSelectedPlaceDetails] = useState(null);
-    const [directions, setDirections] = useState([]);
+    const [nearbyPlaces, setNearbyPlaces] = useState([]);
 
     const suggestionBoxRef = useRef(new Animated.Value(0)).current;
 
@@ -55,8 +28,6 @@ const SearchScreen = ({ route }) => {
             useNativeDriver: false,
         }).start();
     }, [showSuggestions]);
-
-    //  Fetch Place Suggestions from Google Places API 
 
     const fetchPlaces = async (input) => {
         if (!input.trim()) {
@@ -90,17 +61,12 @@ const SearchScreen = ({ route }) => {
         }
     };
 
-    //  Optimize API Calls with Debounce 
-
     const debouncedFetchPlaces = useCallback(debounce(fetchPlaces, 500), []);
-
-    //  Handle Destination Input Change 
 
     const handleDestinationChange = (text) => {
         setDestination(text);
         debouncedFetchPlaces(text);
     };
-
 
     //  Handle Place Selection
     const handlePlaceSelect = async (place) => {
@@ -122,79 +88,48 @@ const SearchScreen = ({ route }) => {
             if (response.data.status === "OK") {
                 const details = response.data.result;
                 const { lat, lng } = details.geometry.location;
-                const placeDetails = {
-                    name: details.name,
-                    coordinates: { latitude: lat, longitude: lng },
-                    address: details.formatted_address, // ✅ Store Address
-                    rating: details.rating || "N/A", // ✅ Store Ratings
-                    website: details.website || "N/A", // ✅ Store Website
-                    image: details.photos?.[0]?.photo_reference
-                        ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${details.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
-                        : "https://via.placeholder.com/400",
-                };
 
                 setSelectedLocation({ latitude: lat, longitude: lng });
-                setSelectedPlaceDetails(placeDetails);
+                // Fetch nearby places
+                fetchNearbyPlaces(lat, lng);
             }
         } catch (error) {
             logger.error("Error fetching place details:", error);
         }
     };
 
-    const getMarkerImage = () => {
-        switch (type) {
-            case "hotel":
-                return Images.hotelMarker;
-            case "activity":
-                return Images.activityMarker;
-            case "restaurant":
-                return Images.restaurantMarker;
-            default:
-                return Images.hotelMarker; // A fallback icon
-        }
-    };
+    const fetchNearbyPlaces = async (latitude, longitude) => {
+        try {
+            const response = await axios.get(
+                `https://maps.googleapis.com/maps/api/place/nearbysearch/json`,
+                {
+                    params: {
+                        location: `${latitude},${longitude}`,
+                        radius: 5000, // 5km radius
+                        type: "restaurant", // Change based on your requirement
+                        key: GOOGLE_API_KEY,
+                    },
+                }
+            );
 
-    const handleAddToList = () => {
-        if (selectedPlaceDetails && coordinates.length === 2) {
-            const { latitude, longitude } = selectedPlaceDetails.coordinates;
-            const itineraryLat = coordinates[0]; // ✅ Extract latitude from array
-            const itineraryLng = coordinates[1]; // ✅ Extract longitude from array
-
-            const distance = getDistanceFromLatLonInKm(itineraryLat, itineraryLng, latitude, longitude);
-
-            if (distance > 500) {
-                Toast.show({
-                    type: "error",
-                    text1: "Location Too Far",
-                    text2: "You can only add places within 500 km of your itinerary location.",
-                });
-                return;
+            if (response.data.status === "OK") {
+                setNearbyPlaces(response.data.results);
+            } else {
+                setNearbyPlaces([]);
             }
-
-            const item = {
-                id: uuidv4(),
-                type,
-                ...selectedPlaceDetails,
-                price: selectedPlaceDetails.price || "0.00",
-            };
-
-            dispatch({
-                type: ADD_TRIP_DAY_ITEM,
-                payload: {
-                    dayIndex,
-                    item,
-                },
-            });
-
-            navigation.goBack();
-        } else {
-            Toast.show({
-                type: "error",
-                text1: "Missing Selection",
-                text2: "Please select a place to add.",
-            });
+        } catch (error) {
+            logger.error("Error fetching nearby places:", error);
+            setNearbyPlaces([]);
         }
     };
+
+    const handleNearbySelect = (place) => {
+        setSelectedLocation({
+            latitude: place.geometry.location.lat,
+            longitude: place.geometry.location.lng,
+        });
+    };
+
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
@@ -206,22 +141,22 @@ const SearchScreen = ({ route }) => {
                     </TouchableOpacity>
                     {/* <Text style={styles.header}>Add a {category} to the itinerary</Text> */}
                     <Text style={styles.header}>
-                        {`Add ${type} to Your Itinerary`}
+                        Explore Places
                     </Text>
                 </View>
 
                 <View style={{ marginTop: hp(2), marginHorizontal: wp(6) }}>
                     <Text style={styles.label}>
-                        {`Find the best ${type} for your trip`}
+                        Discover and explore amazing places
                     </Text>
                     <TextInput
                         style={styles.input}
-                        placeholder={`Search for a ${type}...`}
+                        placeholder={"Search for places..."}
                         value={destination}
                         onChangeText={handleDestinationChange}
                     />
                     {showSuggestions && (
-                        <Animated.View style={[styles.suggestionBox, { opacity: suggestionBoxRef }]}>
+                        <Animated.View style={[styles.suggestionBox, { opacity: suggestionBoxRef, }]}>
                             <FlatList
                                 data={suggestions}
                                 keyExtractor={(item) => item.place_id}
@@ -244,33 +179,55 @@ const SearchScreen = ({ route }) => {
                         longitude: selectedLocation.longitude,
                         latitudeDelta: 0.05,
                         longitudeDelta: 0.05,
-                    } : coordinates.length === 2 && {
-                        latitude: coordinates[0],  // ✅ Use itinerary latitude
-                        longitude: coordinates[1], // ✅ Use itinerary longitude
-                        latitudeDelta: 0.1,
-                        longitudeDelta: 0.1,
+                    } : {
+                        latitude: 37.7749, longitude: -122.4194, latitudeDelta: 0.1, longitudeDelta: 0.1
                     }}
                 >
                     {selectedLocation && (
                         <Marker coordinate={selectedLocation} title={selectedPlaceDetails?.title}>
-                            <Image source={getMarkerImage()} style={styles.customMarker} />
+                            <Image source={Images.hotelMarker} style={styles.customMarker} />
                         </Marker>
                     )}
                 </MapView>
 
-                <View style={styles.buttonContainer}>
-                    <Button
-                        title="Add into the list"
-                        onPress={handleAddToList}
-                    />
-                </View>
+                {nearbyPlaces.length > 0 && (
+                    <View style={styles.bottomCardContainer}>
+                        <FlatList
+                            horizontal
+                            data={nearbyPlaces}
+                            keyExtractor={(item) => item.place_id}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity style={styles.card} onPress={() => handleNearbySelect(item)} activeOpacity={0.7}>
+                                    <Image
+                                        source={{
+                                            uri: item.photos?.[0]?.photo_reference
+                                                ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${item.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
+                                                : "https://via.placeholder.com/400",
+                                        }}
+                                        style={styles.cardImage}
+                                    />
+                                    <View style={styles.cardDetails}>
+                                        <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
+                                        <Text style={styles.cardRating}>
+                                            ⭐ {item.rating || "N/A"} ({item.user_ratings_total || 0} reviews)
+                                        </Text>
+                                        <Text style={styles.cardCategory}>{item.types[0].replace("_", " ")}</Text>
+                                        <Text style={styles.cardStatus}>
+                                            {item.opening_hours?.open_now ? "🟢 Open" : "🔴 Closed"}
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
+                )}
 
             </View>
         </SafeAreaView>
     );
 };
 
-export default SearchScreen;
+export default Explore;
 
 
 const styles = StyleSheet.create({
@@ -295,7 +252,7 @@ const styles = StyleSheet.create({
         marginBottom: hp(1),
     },
     input: {
-        borderWidth: 1,
+        borderWidth: 0.5,
         color: COLORS.darkgray,
         borderColor: COLORS.Midgray,
         borderRadius: wp(2),
@@ -306,13 +263,13 @@ const styles = StyleSheet.create({
     },
     suggestionBox: {
         position: "absolute",
-        top: hp(10),
+        top: hp(9.2),
         left: wp(0),
         right: wp(0),
         backgroundColor: COLORS.white,
         borderRadius: wp(2),
         zIndex: 1,
-        borderWidth: 0.7,
+        borderWidth: 0.5,
         borderColor: COLORS.gray,
         shadowColor: "#000",
         shadowOpacity: 0.1,
@@ -342,18 +299,61 @@ const styles = StyleSheet.create({
         height: wp(8),
         resizeMode: "contain",
     },
-    resultItem: {
-        padding: hp(2),
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.red,
-    },
-    resultText: { fontSize: hp(2.2) },
-    /* Fixed Bottom Button */
-    buttonContainer: {
+    bottomCardContainer: {
         position: "absolute",
-        bottom: hp(4), // Position slightly above screen bottom
+        bottom: hp(0),
+        left: 0,
+        right: 0,
+        paddingVertical: hp(1),
+        // backgroundColor: "rgba(255, 255, 255, 0.9)",
+        borderTopLeftRadius: wp(4),
+        borderTopRightRadius: wp(4),
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowOffset: { width: 0, height: -2 },
+        elevation: 5,
+    },
+    card: {
+        marginBottom: hp(3),
+        width: wp(45),
+        height: hp(28),
+        marginHorizontal: wp(2),
+        backgroundColor: COLORS.white,
+        borderRadius: wp(3),
+        overflow: "hidden",
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 4,
+    },
+    cardImage: {
         width: "100%",
-        paddingHorizontal: wp(6),
+        height: hp(12),
+        resizeMode: "cover",
+    },
+    cardDetails: {
+        padding: wp(2),
+    },
+    cardTitle: {
+        fontSize: hp(1.8),
+        fontFamily: fontFamily.FONTS.bold,
+        color: COLORS.darkgray,
+    },
+    cardRating: {
+        fontSize: hp(1.8),
+        fontFamily: fontFamily.FONTS.Medium,
+        color: COLORS.Midgray,
+    },
+    cardCategory: {
+        fontSize: hp(1.6),
+        fontFamily: fontFamily.FONTS.Medium,
+        color: COLORS.Midgray
+    },
+    cardStatus: {
+        fontSize: hp(1.8),
+        fontFamily: fontFamily.FONTS.Medium,
+        color: COLORS.darkgray
     },
 
 });
+

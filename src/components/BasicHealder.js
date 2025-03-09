@@ -11,7 +11,7 @@ const BasicHeader = () => {
             <Image source={Images.travelLoggerLogo} style={styles.logo} />
 
             <View style={styles.headerIcons}>
-                <TouchableOpacity onPress={() => navigation.navigate("SearchScreen", { isSearchOnly: true })}>
+                <TouchableOpacity onPress={() => navigation.navigate("Explore", { isSearchOnly: true })}>
                     <SVGS.SEARCH width={wp(8.5)} height={hp(4)} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate("NotificationScreen")}>

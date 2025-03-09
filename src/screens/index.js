@@ -22,6 +22,7 @@ import Privacy from './Privacy/index.js';
 import Terms from './Terms/index.js';
 import BlogScreen from './BlogScreen/index.js';
 import NotificationScreen from './notification/index.js';
+import Explore from './Explore/index.js';
 
 export {
     Splash,
@@ -47,5 +48,6 @@ export {
     Privacy,
     Terms,
     BlogScreen,
-    NotificationScreen
+    NotificationScreen,
+    Explore
 };
