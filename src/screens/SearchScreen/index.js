@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import { GOOGLE_API_KEY } from "@env";
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, FlatList, TextInput, StyleSheet, SafeAreaView, StatusBar, Image, Animated, Alert } from 'react-native';
@@ -13,6 +14,7 @@ import { useDispatch } from "react-redux";
 import { ADD_TRIP_DAY_ITEM } from "../../redux/Actions";
 import logger from '../../utils/logger';
 import Toast from "react-native-toast-message";
+import { v4 as uuidv4 } from 'uuid';
 
 const SearchScreen = ({ route }) => {
     const navigation = useNavigation();
@@ -20,8 +22,8 @@ const SearchScreen = ({ route }) => {
     // const { category, dayIndex } = route.params;
     const isSearchOnly = route.params?.isSearchOnly || false;
 
-    const category = route.params?.category || "Hotel";
-    const dayIndex = route.params?.dayIndex ?? 0;
+    const type = route.params.type;
+    const dayIndex = route.params.dayIndex;
 
     const [destination, setDestination] = useState("");
     const [suggestions, setSuggestions] = useState([]);
@@ -126,12 +128,12 @@ const SearchScreen = ({ route }) => {
     };
 
     const getMarkerImage = () => {
-        switch (category) {
-            case "Hotel":
+        switch (type) {
+            case "hotel":
                 return Images.hotelMarker;
-            case "Activity":
+            case "activity":
                 return Images.activityMarker;
-            case "Restaurant":
+            case "restaurant":
                 return Images.restaurantMarker;
             default:
                 return Images.hotelMarker; // A fallback icon
@@ -141,7 +143,8 @@ const SearchScreen = ({ route }) => {
     const handleAddToList = () => {
         if (selectedPlaceDetails) {
             const item = {
-                category,
+                id: uuidv4(),
+                type,
                 ...selectedPlaceDetails,
                 price: selectedPlaceDetails.price || "0.00", // ✅ Default to "$0.00" if missing
             };
@@ -173,17 +176,17 @@ const SearchScreen = ({ route }) => {
                     </TouchableOpacity>
                     {/* <Text style={styles.header}>Add a {category} to the itinerary</Text> */}
                     <Text style={styles.header}>
-                        {isSearchOnly ? "Explore Places" : `Add ${category} to Your Itinerary`}
+                        {isSearchOnly ? "Explore Places" : `Add ${type} to Your Itinerary`}
                     </Text>
                 </View>
 
                 <View style={{ marginTop: hp(2), marginHorizontal: wp(6) }}>
                     <Text style={styles.label}>
-                        {isSearchOnly ? "Discover and explore amazing places" : `Find the best ${category} for your trip`}
+                        {isSearchOnly ? "Discover and explore amazing places" : `Find the best ${type} for your trip`}
                     </Text>
                     <TextInput
                         style={styles.input}
-                        placeholder={isSearchOnly ? "Search for places..." : `Search for a ${category}...`}
+                        placeholder={isSearchOnly ? "Search for places..." : `Search for a ${type}...`}
                         value={destination}
                         onChangeText={handleDestinationChange}
                     />
@@ -333,4 +336,3 @@ const styles = StyleSheet.create({
     },
 
 });
-

@@ -11,6 +11,7 @@ import logger from '../../utils/logger';
 import { storeDataInAsyncStorage } from '../../utils/Helper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from "react-native-toast-message";
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 const Profile = ({ navigation }) => {
     const dispatch = useDispatch();
@@ -94,6 +95,8 @@ const Profile = ({ navigation }) => {
 
     const handleLogout = async () => {
         try {
+            await GoogleSignin.revokeAccess();
+            await GoogleSignin.signOut();
             await AsyncStorage.removeItem('userData'); // Clear stored user data
             navigation.reset({ index: 0, routes: [{ name: 'SocialAuth' }] }); // Navigate to Login
         } catch (error) {

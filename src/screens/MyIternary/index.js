@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, TouchableOpacity, FlatList, SafeAreaView, StatusBar, ActivityIndicator, RefreshControl } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -9,6 +10,7 @@ import logger from '../../utils/logger';
 import ItineraryCard from "../../components/ItineraryCard";
 import BasicHeader from "../../components/BasicHealder";
 import { getItineraries } from "../../services/planTripService";
+import { v4 as uuidv4 } from 'uuid'
 
 const MyItinerary = ({ navigation }) => {
     const dispatch = useDispatch();
@@ -69,24 +71,30 @@ const MyItinerary = ({ navigation }) => {
                                 <ItineraryCard
                                     item={item}
                                     onPress={() => {
+                                        // console.log("tripDays", item)
                                         const tripDays = item.days.map((day, index) => ({
                                             id: `day-${index + 1}`,
-                                            day: new Date(day.date).toDateString(),
+                                            day: day.date,
                                             items: [
                                                 ...(day.sections?.activities || []).map(activity => ({
                                                     ...activity,
                                                     type: "activity",
+                                                    id: activity.id || uuidv4(),
                                                 })),
                                                 ...(day.sections?.hotels || []).map(hotel => ({
                                                     ...hotel,
                                                     type: "hotel",
+                                                    id: hotel.id || uuidv4(),
                                                 })),
                                                 ...(day.sections?.restaurants || []).map(restaurant => ({
                                                     ...restaurant,
                                                     type: "restaurant",
+                                                    id: restaurant.id || uuidv4(),
                                                 }))
                                             ] // Extracted and merged activities, hotels, and restaurants
                                         }));
+
+                                        console.log("after tripDays", tripDays)
 
                                         dispatch({
                                             type: SET_TRIP_DETAILS,

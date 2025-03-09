@@ -8,6 +8,7 @@ import { FETCH_ITINERARIES, SET_TRIP_DETAILS } from "../../redux/Actions";
 import { getItineraries } from "../../services/planTripService";
 import { useDispatch, useSelector } from "react-redux";
 import logger from '../../utils/logger';
+import { v4 as uuidv4 } from 'uuid'
 
 const AIIternary = ({ navigation }) => {
     const dispatch = useDispatch();
@@ -68,23 +69,25 @@ const AIIternary = ({ navigation }) => {
                                 <ItineraryCard
                                     item={item}
                                     onPress={() => {
-                                        console.log("this is the item", item.days);
 
                                         const tripDays = item.days.map((day, index) => ({
                                             id: `day-${index + 1}`,
-                                            day: new Date(day.date).toDateString(),
+                                            day: day.date,
                                             items: [
-                                                ...(day.sections?.activities || []).map(activity => ({
+                                                ...(day.sections?.activities).map(activity => ({
                                                     ...activity,
                                                     type: "activity",
+                                                    id: activity.id || uuidv4(),
                                                 })),
-                                                ...(day.sections?.hotels || []).map(hotel => ({
+                                                ...(day.sections?.hotels).map(hotel => ({
                                                     ...hotel,
                                                     type: "hotel",
+                                                    id: hotel.id || uuidv4(),
                                                 })),
-                                                ...(day.sections?.restaurants || []).map(restaurant => ({
+                                                ...(day.sections?.restaurants).map(restaurant => ({
                                                     ...restaurant,
                                                     type: "restaurant",
+                                                    id: restaurant.id || uuidv4(),
                                                 }))
                                             ] // Extracted and merged activities, hotels, and restaurants
                                         }));

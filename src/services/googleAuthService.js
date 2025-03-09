@@ -16,44 +16,46 @@ export const signInWithGoogle = async (navigation, dispatch) => {
 
         await GoogleSignin.hasPlayServices();
         const userInfo = await GoogleSignin.signIn();
+        const { idToken, accessToken } = await GoogleSignin.getTokens();
 
         console.log("this is the userInfo:", userInfo);
-
-        // ✅ Correctly extract idToken whether it's inside `data` or not
-        const idToken = userInfo?.data?.idToken || userInfo?.idToken;
-
-        if (!idToken) {
-            throw new Error("Failed to retrieve ID Token from Google.");
-        }
-
         console.log("this is the idToken:", idToken);
+        console.log("this is the accessToken:", accessToken);
 
-        Toast.show({ type: 'info', text1: 'Authenticating...', text2: 'Please wait' });
-
-        // ✅ Ensure correct idToken format
         const response = await googleLogin({ idToken });
 
         console.log("API response", response);
 
-        Toast.show({
-            type: 'success',
-            text1: response.message || "Authentication Successful",
-            text2: 'Redirecting to Home...'
-        });
+        if (response?.status === 200) {
+            Toast.show({
+                type: 'success',
+                text1: response.message || "Authentication Successful",
+                text2: 'Redirecting to Home...'
+            });
 
-        await storeDataInAsyncStorage("userData", response);
-
-        dispatch({
-            type: LOGIN_SUCCESS,
-            payload: { userData: response },
-        });
-
-        navigation.reset({ index: 0, routes: [{ name: 'TabStack' }] });
-
+            await storeDataInAsyncStorage("userData", response);
+            dispatch({ type: LOGIN_SUCCESS, payload: { userData: response } });
+            navigation.reset({ index: 0, routes: [{ name: 'TabStack' }] });
+        } else if (response?.status === 401 || response?.status === 409) {
+            Toast.show({
+                type: 'info',
+                text1: 'User already exists or Unauthorized',
+                text2: 'Redirecting to Login...'
+            });
+            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+        } else {
+            Toast.show({
+                type: 'error',
+                text1: 'Authentication Failed',
+                text2: response?.message || 'Something went wrong!'
+            });
+        }
     } catch (error) {
-        Toast.show({ type: 'error', text1: 'Google Sign-In Failed', text2: error.message || "Something went wrong!" });
+        Toast.show({
+            type: 'error',
+            text1: 'Google Sign-In Failed',
+            text2: error.message || "Something went wrong!"
+        });
         console.log("Google Sign-In Error:", error);
     }
 };
-
-

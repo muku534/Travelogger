@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, StyleSheet, SafeAreaView, StatusBar, Alert, Animated, FlatList } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, StyleSheet, SafeAreaView, StatusBar, Animated, FlatList } from "react-native";
 import DatePicker from "react-native-date-picker";
 import LinearGradient from "react-native-linear-gradient";
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
@@ -17,7 +17,6 @@ const AIPlanTrip = ({ navigation }) => {
     const { destination, suggestions, showSuggestions, selectedLocation, handleDestinationChange, handlePlaceSelect } = usePlaceSearch();
     const dispatch = useDispatch();
     const userData = useSelector(state => state.userData);
-
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
     const [openStartDate, setOpenStartDate] = useState(false);
@@ -53,12 +52,20 @@ const AIPlanTrip = ({ navigation }) => {
         setOpenEndDate(false);
 
         if (!startDate) {
-            Alert.alert("Select Start Date", "Please select a start date first.");
+            Toast.show({
+                type: "info",
+                text1: "Select Start Date",
+                text2: "Please select a start date first.",
+            });
             return;
         }
 
         if (date <= startDate) {
-            Alert.alert("Invalid Date", "End date must be after the start date.");
+            Toast.show({
+                type: "error",
+                text1: "Invalid Date",
+                text2: "End date must be after the start date.",
+            });
             return;
         }
 

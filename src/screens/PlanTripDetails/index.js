@@ -9,7 +9,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import Toast from "react-native-toast-message";
 import { createItineraries, ShareItinerary, updateItineraryById } from '../../services/planTripService';
 import logger from '../../utils/logger';
-import { handleShareItinerary } from '../../utils/ShareItinerary';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { DELETE_TRIP_DAY_ITEM } from '../../redux/Actions';
 
@@ -17,7 +16,6 @@ const PlanTripDetails = ({ navigation, route }) => {
     const refRBSheet = useRef(null); // Bottom Sheet Ref
     const dispatch = useDispatch();
     const { itineraryId, destination, startDate, endDate, coordinates, tripDays } = useSelector(state => state.tripDetails);
-    console.log("tripData", itineraryId, destination, startDate, endDate, coordinates, tripDays)
     const [modalVisible, setModalVisible] = useState(false);
     const [email, setEmail] = useState('');
     const [emailError, setEmailError] = useState("");
@@ -224,12 +222,15 @@ const PlanTripDetails = ({ navigation, route }) => {
     }, [tripDays]);
 
 
-    const handleAddItem = (category, dayIndex) => {
-        navigation.navigate("SearchScreen", { category, dayIndex, isSearchOnly: false });
+    const handleAddItem = (type, dayIndex) => {
+        navigation.navigate("SearchScreen", { type, dayIndex, isSearchOnly: false });
     };
 
     const handleSaveItinerary = async () => {
+        const hotels = tripDays[0]
+        console.log("before sending hotels", hotels)
         try {
+            // console.log("before sending  tripDays", tripDays)
             const itineraryData = {
                 itinerary: {
                     userId: userData.userId,
@@ -251,24 +252,25 @@ const PlanTripDetails = ({ navigation, route }) => {
                         },
                     },
                     days: tripDays.map((day, index) => ({
-                        date: new Date(day.day).toISOString().split("T")[0], // Convert date to YYYY-MM-DD
+                        date: new Date(day.day).toISOString(), // Convert date to YYYY-MM-DD
                         dayNumber: index + 1, // Ensure day_number is sequential
                         budget: { planned: 0, actual: 0 }, // Required budget field
                         sections: {
                             hotels: day.items
-                                .filter(item => item.category === "Hotel")
+                                .filter(item => item.type === "hotel")
                                 .map(hotel => ({
                                     type: "hotel",
-                                    title: hotel.name || "",
-                                    description: hotel.address || "",
+                                    title: hotel.name || hotel.title || "",
+                                    description: hotel.address || hotel.description || "",
                                     location: {
-                                        name: hotel.address || "",
-                                        coordinates: hotel.coordinates
-                                            ? [
-                                                !isNaN(hotel.coordinates.latitude) ? Number(hotel.coordinates.latitude) : 0,
-                                                !isNaN(hotel.coordinates.longitude) ? Number(hotel.coordinates.longitude) : 0
-                                            ]
-                                            : [0, 0],
+                                        name: hotel.address || hotel.name || hotel.location?.name || "",
+                                        address: hotel.location?.address || hotel.address || "",
+                                        coordinates: hotel.location?.coordinates
+                                            ? [hotel.location.coordinates[0], hotel.location.coordinates[1]]
+                                            : hotel.coordinates
+                                                ? [hotel.coordinates.latitude, hotel.coordinates.longitude]
+                                                : [],
+                                        placeId: hotel.location?.placeId || hotel.placeId || null
                                     },
                                     startTime: hotel.startTime || null,
                                     endTime: hotel.endTime || null,
@@ -277,12 +279,14 @@ const PlanTripDetails = ({ navigation, route }) => {
                                     priceLevel: !isNaN(hotel.priceLevel) ? Number(hotel.priceLevel) : 1,
                                     rating: !isNaN(hotel.rating) ? Number(hotel.rating) : 0,
                                     userRatingsTotal: !isNaN(hotel.userRatingsTotal) ? Number(hotel.userRatingsTotal) : 0,
-                                    photos: hotel.image ? [{ url: hotel.image }] : [],
+                                    photos: hotel.photos && Array.isArray(hotel.photos)
+                                        ? hotel.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                        : hotel.image ? [{ url: hotel.image }] : [],
                                     contact: {
-                                        phone: hotel.phone || "",
-                                        email: hotel.email || "",
-                                        website: hotel.website || "",
-                                        googleMapsUrl: hotel.googleMapsUrl || "",
+                                        phone: hotel.contact?.phone || hotel.phone || "",
+                                        email: hotel.contact?.email || "",
+                                        website: hotel.contact?.website || hotel.website || "",
+                                        googleMapsUrl: hotel.contact?.googleMapsUrl || hotel.googleMapsUrl || "",
                                     },
                                     operatingHours: hotel.operatingHours || {},
                                     metadata: {
@@ -294,19 +298,20 @@ const PlanTripDetails = ({ navigation, route }) => {
                                 })),
 
                             activities: day.items
-                                .filter(item => item.category === "Activity")
+                                .filter(item => item.type === "activity")
                                 .map(activity => ({
                                     type: "activity",
-                                    title: activity.name || "",
-                                    description: activity.address || "",
+                                    title: activity.name || activity.title || "",
+                                    description: activity.address || activity.description || "",
                                     location: {
-                                        name: activity.address || "",
-                                        coordinates: activity.coordinates
-                                            ? [
-                                                !isNaN(activity.coordinates.latitude) ? Number(activity.coordinates.latitude) : 0,
-                                                !isNaN(activity.coordinates.longitude) ? Number(activity.coordinates.longitude) : 0
-                                            ]
-                                            : [0, 0],
+                                        name: activity.location?.name || activity.name || "",
+                                        address: activity.location?.address || activity.address || "",
+                                        coordinates: activity.location?.coordinates
+                                            ? [activity.location.coordinates[0], activity.location.coordinates[1]]
+                                            : activity.coordinates
+                                                ? [activity.coordinates.latitude, activity.coordinates.longitude]
+                                                : [],
+                                        placeId: activity.location?.placeId || activity.placeId || null
                                     },
                                     startTime: activity.startTime || null,
                                     endTime: activity.endTime || null,
@@ -315,12 +320,14 @@ const PlanTripDetails = ({ navigation, route }) => {
                                     priceLevel: !isNaN(activity.priceLevel) ? Number(activity.priceLevel) : 1,
                                     rating: !isNaN(activity.rating) ? Number(activity.rating) : 0,
                                     userRatingsTotal: !isNaN(activity.userRatingsTotal) ? Number(activity.userRatingsTotal) : 0,
-                                    photos: activity.image ? [{ url: activity.image }] : [],
+                                    photos: activity.photos && Array.isArray(activity.photos)
+                                        ? activity.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                        : activity.image ? [{ url: activity.image }] : [],
                                     contact: {
-                                        phone: activity.phone || "",
-                                        email: activity.email || "",
-                                        website: activity.website || "",
-                                        googleMapsUrl: activity.googleMapsUrl || "",
+                                        phone: activity.contact?.phone || activity.phone || "",
+                                        email: activity.contact?.email || activity.email || "",
+                                        website: activity.contact.website || activity.website || "",
+                                        googleMapsUrl: activity.contact?.googleMapsUrl || activity.googleMapsUrl || "",
                                     },
                                     operatingHours: activity.operatingHours || {},
                                     metadata: {
@@ -332,19 +339,20 @@ const PlanTripDetails = ({ navigation, route }) => {
                                 })),
 
                             restaurants: day.items
-                                .filter(item => item.category === "Restaurant")
+                                .filter(item => item.type === "restaurant")
                                 .map(restaurant => ({
                                     type: "restaurant",
-                                    title: restaurant.name || "",
-                                    description: restaurant.address || "",
+                                    title: restaurant.title || restaurant.name || "",
+                                    description: restaurant.description || restaurant.address || "",
                                     location: {
-                                        name: restaurant.address || "",
-                                        coordinates: restaurant.coordinates
-                                            ? [
-                                                !isNaN(restaurant.coordinates.latitude) ? Number(restaurant.coordinates.latitude) : 0,
-                                                !isNaN(restaurant.coordinates.longitude) ? Number(restaurant.coordinates.longitude) : 0
-                                            ]
-                                            : [0, 0],
+                                        name: restaurant.location?.name || restaurant.name || "",
+                                        address: restaurant.location?.address || restaurant.address || "",
+                                        coordinates: restaurant.location?.coordinates
+                                            ? [restaurant.location.coordinates[0], restaurant.location.coordinates[1]]
+                                            : restaurant.coordinates
+                                                ? [restaurant.coordinates.latitude, restaurant.coordinates.longitude]
+                                                : [],
+                                        placeId: restaurant.location?.placeId || restaurant.placeId || null
                                     },
                                     startTime: restaurant.startTime || null,
                                     endTime: restaurant.endTime || null,
@@ -353,12 +361,14 @@ const PlanTripDetails = ({ navigation, route }) => {
                                     priceLevel: !isNaN(restaurant.priceLevel) ? Number(restaurant.priceLevel) : 1,
                                     rating: !isNaN(restaurant.rating) ? Number(restaurant.rating) : 0,
                                     userRatingsTotal: !isNaN(restaurant.userRatingsTotal) ? Number(restaurant.userRatingsTotal) : 0,
-                                    photos: restaurant.image ? [{ url: restaurant.image }] : [],
+                                    photos: restaurant.photos && Array.isArray(restaurant.photos)
+                                        ? restaurant.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                        : restaurant.image ? [{ url: restaurant.image }] : [],
                                     contact: {
-                                        phone: restaurant.phone || "",
-                                        email: restaurant.email || "",
-                                        website: restaurant.website || "",
-                                        googleMapsUrl: restaurant.googleMapsUrl || "",
+                                        phone: restaurant?.contact?.phone || restaurant.phone || "",
+                                        email: restaurant?.contact?.email || restaurant.email || "",
+                                        website: restaurant?.contact?.website || restaurant.website || "",
+                                        googleMapsUrl: restaurant?.contact?.googleMapsUrl || restaurant.googleMapsUrl || "",
                                     },
                                     operatingHours: restaurant.operatingHours || {},
                                     metadata: {
@@ -378,7 +388,6 @@ const PlanTripDetails = ({ navigation, route }) => {
             console.log("Saving Itinerary - ID:", itineraryId);
             console.log("Saving Itinerary - Data:", JSON.stringify(itineraryData, null, 2))
 
-            console.log("Saving Itinerary:", itineraryData);
             if (itineraryId) {
                 await updateItineraryById(itineraryId, itineraryData);
                 Toast.show({
@@ -409,7 +418,7 @@ const PlanTripDetails = ({ navigation, route }) => {
 
     const handleItemPress = (item, dayIndex) => {
         setSelectedItem({ ...item, dayIndex }); // Store item and its day index
-        console.log("Selected Item for deletion:", { dayIndex });
+        console.log("Selected Item for deletion:", { ...item, dayIndex });
         refRBSheet.current.open();  // Open the bottom sheet
     };
 
@@ -597,9 +606,9 @@ const PlanTripDetails = ({ navigation, route }) => {
 
                             if (item?.items && Array.isArray(item.items)) {
                                 // ✅ Handles both `type` and `category` fields
-                                hotels = item.items.filter((place) => place.type?.toLowerCase() === "hotel" || place.category === "Hotel");
-                                activities = item.items.filter((place) => place.type?.toLowerCase() === "activity" || place.category === "Activity");
-                                restaurants = item.items.filter((place) => place.type?.toLowerCase() === "restaurant" || place.category === "Restaurant");
+                                hotels = item.items.filter((place) => place.type?.toLowerCase() === "hotel");
+                                activities = item.items.filter((place) => place.type?.toLowerCase() === "activity");
+                                restaurants = item.items.filter((place) => place.type?.toLowerCase() === "restaurant");
                             } else if (item?.sections) {
                                 // ✅ Handles `sections` format
                                 hotels = item.sections.hotels || [];
@@ -630,7 +639,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                                         <View style={styles.optionsContainer}>
 
                                             {/* Hotel Section */}
-                                            <OptionButton title="Add Hotel" Icon={SVGS.HOTEL} onPress={() => handleAddItem('Hotel', index)} />
+                                            <OptionButton title="Add Hotel" Icon={SVGS.HOTEL} onPress={() => handleAddItem('hotel', index)} />
                                             {hotels.map((hotel, hotelIndex) => (
                                                 <TouchableOpacity key={hotelIndex} onPress={() => handleItemPress(hotel, index)} activeOpacity={0.7}>
                                                     <View>
@@ -687,7 +696,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                                             ))}
 
                                             {/* Activity Section */}
-                                            <OptionButton title="Add Activities" Icon={SVGS.ACTIVITYICON} isImage={true} onPress={() => handleAddItem('Activity', index)} />
+                                            <OptionButton title="Add Activities" Icon={SVGS.ACTIVITYICON} isImage={true} onPress={() => handleAddItem('activity', index)} />
                                             {activities.map((activity, activityIndex) => (
                                                 <TouchableOpacity key={activityIndex} onPress={() => handleItemPress(activity, index)} activeOpacity={0.7}>
                                                     <View>
@@ -737,7 +746,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                                             ))}
 
                                             {/* Restaurant Section */}
-                                            <OptionButton title="Add Restaurants" Icon={SVGS.RESTAURANT} onPress={() => handleAddItem('Restaurant', index)} />
+                                            <OptionButton title="Add Restaurants" Icon={SVGS.RESTAURANT} onPress={() => handleAddItem('restaurant', index)} />
                                             {restaurants.map((restaurant, restaurantIndex) => (
                                                 <TouchableOpacity key={restaurantIndex} onPress={() => handleItemPress(restaurant, index)} activeOpacity={0.7}>
                                                     <View>

@@ -17,7 +17,6 @@ const AiPlanTripDetails = ({ navigation }) => {
     const refRBSheet = useRef(null); // Bottom Sheet Ref
     const dispatch = useDispatch();
     const { itineraryId, destination, startDate, endDate, coordinates, tripDays } = useSelector(state => state.tripDetails);
-    console.log("itinerary data", itineraryId, destination, startDate, endDate, coordinates, tripDays)
     const [expanded, setExpanded] = useState(null);
     const [activeTab, setActiveTab] = useState('List');
     const sliderAnim = useRef(new Animated.Value(wp(12))).current; // Start at 'List' position
@@ -89,7 +88,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                 text1: "Error",
                 text2: error.message || "Failed to send itinerary.",
             });
-            console.error("Email send error:", error);
+            logger.error("Email send error:", error);
         } finally {
             setLoading(false); // Hide loading indicator
         }
@@ -196,7 +195,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                 const distanceMiles = haversineDistance(origin, destination);
                 const durationText = estimateDuration(distanceMiles, category);
 
-                logger.info(`Distance from ${originName} to ${destinationName}: ${distanceMiles} miles, ${durationText}`);
+                // logger.info(`Distance from ${originName} to ${destinationName}: ${distanceMiles} miles, ${durationText}`);
 
                 newDistances[`${originName}-${destinationName}`] = {
                     distance: `${distanceMiles} miles`,
@@ -208,204 +207,386 @@ const AiPlanTripDetails = ({ navigation }) => {
         setDistances(newDistances);
     };
 
+    const formatDate = (inputDate) => {
+        const date = new Date(inputDate);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // ✅ Ensure two-digit month
+        const day = String(date.getDate()).padStart(2, '0'); // ✅ Ensure two-digit day
+        return `${year}-${month}-${day}`;
+    };
+
     const handleSaveItinerary = async () => {
         try {
             setLoading(true);
-
-            const itineraryData = {
-                itinerary: {
-                    userId: userData.userId,
-                    title: `${destination} Trip ${new Date().getFullYear()}`,
-                    status: "draft",
-                    visibility: "private",
-                    generatedBy: "AI",
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    tripImg: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80",
-                    tripDetails: {
-                        destination: { name: destination, coordinates: coordinates },
-                        startDate: startDate,
-                        endDate: endDate,
-                        budget: {
-                            currency: "USD",
-                            total: 0,
-                            breakdown: { accommodation: 0, activities: 0, dining: 0, transport: 0 },
+            if (itineraryId) {
+                const itineraryData = {
+                    itinerary: {
+                        userId: userData.userId,
+                        title: `${destination} Trip ${new Date().getFullYear()}`,
+                        status: "draft",
+                        visibility: "private",
+                        generatedBy: "AI",
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        tripImg: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80",
+                        tripDetails: {
+                            destination: { name: destination, coordinates: coordinates },
+                            startDate: startDate,
+                            endDate: endDate,
+                            budget: {
+                                currency: "USD",
+                                total: 0,
+                                breakdown: { accommodation: 0, activities: 0, dining: 0, transport: 0 },
+                            },
                         },
+                        days: tripDays.map((day, index) => ({
+                            date: formatDate(day.date || day.day), // Convert date to YYYY-MM-DD
+                            dayNumber: index + 1, // Ensure day_number is sequential
+                            budget: { planned: 0, actual: 0 }, // Required budget field
+                            sections: {
+                                hotels: day.items
+                                    .filter(item => item.type === "hotel")
+                                    .map(hotel => ({
+                                        type: "hotel",
+                                        title: hotel.name || hotel.title || "",
+                                        description: hotel.description || "",
+                                        location: {
+                                            name: hotel.location?.name || hotel.name || "",
+                                            address: hotel.location?.address || hotel.address || "",
+                                            coordinates: hotel.location?.coordinates
+                                                ? [hotel.location.coordinates[0], hotel.location.coordinates[1]]
+                                                : hotel.coordinates
+                                                    ? [hotel.coordinates.latitude, hotel.coordinates.longitude]
+                                                    : [],
+                                            placeId: hotel.location?.placeId || hotel.placeId || null
+                                        },
+                                        startTime: hotel.startTime || null,
+                                        endTime: hotel.endTime || null,
+                                        duration: hotel.duration || null,
+                                        price: hotel.price || 0,
+                                        priceLevel: hotel.priceLevel || 1,
+                                        rating: hotel.rating || 0,
+                                        userRatingsTotal: hotel.userRatingsTotal || 0,
+                                        photos: hotel.photos && Array.isArray(hotel.photos)
+                                            ? hotel.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                            : hotel.image ? [{ url: hotel.image }] : [],
+                                        contact: {
+                                            phone: hotel.contact?.phone || hotel.phone || "",
+                                            email: hotel.contact?.email || "",
+                                            website: hotel.contact?.website || hotel.website || "",
+                                            googleMapsUrl: hotel.contact?.googleMapsUrl || hotel.googleMapsUrl || "",
+                                        },
+                                        operatingHours: {
+                                            isOpen: hotel.operatingHours?.isOpen || hotel.isOpen || false,
+                                            periods: hotel.operatingHours?.periods
+                                                ? Object.values(hotel.operatingHours.periods.reduce((acc, period) => {
+                                                    acc[period.day] = period; // Keep only the last entry per day
+                                                    return acc;
+                                                }, {}))
+                                                : (hotel.openDay && hotel.openTime ? [{ day: hotel.openDay, hours: hotel.openTime }] : [])
+                                        },
+                                        bookingInfo: hotel.bookingInfo || null,
+                                        metadata: {
+                                            tags: hotel.tags || [],
+                                            isTemplate: hotel.isTemplate || false,
+                                            language: hotel.language || "en",
+                                            version: hotel.version || 1,
+                                        }
+                                    })),
+
+                                activities: day.items
+                                    .filter(item => item.type === "activity")
+                                    .map(activity => ({
+                                        type: "activity",
+                                        title: activity.name || activity.title || "Unnamed Activity",
+                                        description: activity.description || "",
+                                        location: {
+                                            name: activity.location?.name || activity.name || "",
+                                            address: activity.location?.address || activity.address || "",
+                                            coordinates: activity.location?.coordinates
+                                                ? [activity.location.coordinates[0], activity.location.coordinates[1]]
+                                                : activity.coordinates
+                                                    ? [activity.coordinates.latitude, activity.coordinates.longitude]
+                                                    : [],
+                                            placeId: activity.location?.placeId || activity.placeId || null
+                                        },
+                                        startTime: activity.startTime || null,
+                                        endTime: activity.endTime || null,
+                                        duration: activity.duration || null,
+                                        price: activity.price || 0,
+                                        priceLevel: activity.priceLevel || 1,
+                                        rating: activity.rating || 0,
+                                        userRatingsTotal: activity.userRatingsTotal || 0,
+                                        photos: activity.photos && Array.isArray(activity.photos)
+                                            ? activity.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                            : activity.image ? [{ url: activity.image }] : [],
+                                        contact: {
+                                            phone: activity.contact?.phone || activity.phone || "",
+                                            email: activity.contact?.email || activity.email || "",
+                                            website: activity.contact.website || activity.website || "",
+                                            googleMapsUrl: activity.contact?.googleMapsUrl || activity.googleMapsUrl || "",
+                                        },
+                                        operatingHours: {
+                                            isOpen: activity.operatingHours?.isOpen || activity.isOpen || false,
+                                            periods: activity.operatingHours?.periods
+                                                ? Object.values(activity.operatingHours.periods.reduce((acc, period) => {
+                                                    acc[period.day] = period; // Keep only the last entry per day
+                                                    return acc;
+                                                }, {}))
+                                                : (activity.openDay && activity.openTime ? [{ day: activity.openDay, hours: activity.openTime }] : [])
+                                        },
+                                        metadata: {
+                                            tags: activity.tags || [],
+                                            isTemplate: activity.isTemplate || false,
+                                            language: activity.language || "en",
+                                            version: activity.version || 1,
+                                        }
+                                    })),
+
+                                restaurants: day.items
+                                    .filter(item => item.type === "restaurant")
+                                    .map(restaurant => ({
+                                        type: "restaurant",
+                                        title: restaurant.title || restaurant.name || "",
+                                        description: restaurant.description || restaurant.address || "",
+                                        location: {
+                                            name: restaurant.location?.name || restaurant.name || "",
+                                            address: restaurant.location?.address || restaurant.address || "",
+                                            coordinates: restaurant.location?.coordinates
+                                                ? [restaurant.location.coordinates[0], restaurant.location.coordinates[1]]
+                                                : restaurant.coordinates
+                                                    ? [restaurant.coordinates.latitude, restaurant.coordinates.longitude]
+                                                    : [],
+                                            placeId: restaurant.location?.placeId || restaurant.placeId || null
+                                        },
+                                        startTime: restaurant.startTime || null,
+                                        endTime: restaurant.endTime || null,
+                                        duration: restaurant.duration || null,
+                                        price: restaurant.price || 0,
+                                        priceLevel: restaurant.priceLevel || 1,
+                                        rating: restaurant.rating || 0,
+                                        userRatingsTotal: restaurant.userRatingsTotal || 0,
+                                        photos: restaurant.photos && Array.isArray(restaurant.photos)
+                                            ? restaurant.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                            : restaurant.image ? [{ url: restaurant.image }] : [],
+                                        contact: {
+                                            phone: restaurant?.contact?.phone || restaurant.phone || "",
+                                            email: restaurant?.contact?.email || restaurant.email || "",
+                                            website: restaurant?.contact?.website || restaurant.website || "",
+                                            googleMapsUrl: restaurant?.contact?.googleMapsUrl || restaurant.googleMapsUrl || "",
+                                        },
+                                        operatingHours: {
+                                            isOpen: restaurant.isOpen || false,
+                                            periods: restaurant.operatingHours?.periods
+                                                ? Object.values(restaurant.operatingHours.periods.reduce((acc, period) => {
+                                                    acc[period.day] = period; // Keep only the last entry per day
+                                                    return acc;
+                                                }, {}))
+                                                : (restaurant.openDay && restaurant.openTime ? [{ day: restaurant.openDay, hours: restaurant.openTime }] : [])
+                                        },
+                                        metadata: {
+                                            tags: restaurant.tags || [],
+                                            isTemplate: restaurant.isTemplate || false,
+                                            language: restaurant.language || "en",
+                                            version: restaurant.version || 1,
+                                        },
+                                        cuisine: restaurant.cuisine || [],
+                                    })),
+                            }
+                        }))
                     },
-                    days: tripDays.map((day, index) => ({
-                        date: new Date(day.date || day.day).toISOString().split("T")[0], // Support both formats
-                        dayNumber: index + 1,
-                        budget: { planned: 0, actual: 0 },
+                };
 
-                        sections: {
-                            hotels: (day.sections?.hotels || day.items?.filter(item => item.category === "Hotel") || []).map(hotel => ({
-                                id: hotel.id || null,
-                                type: "hotel",
-                                title: hotel.name || hotel.title || "Unnamed Hotel",
-                                description: hotel.description || "",
-                                location: {
-                                    name: hotel.location?.name || hotel.name || "",
-                                    address: hotel.location?.address || hotel.address || "",
-                                    coordinates: hotel.location?.coordinates
-                                        ? [hotel.location.coordinates[0], hotel.location.coordinates[1]]
-                                        : hotel.coordinates
-                                            ? [hotel.coordinates.latitude, hotel.coordinates.longitude]
-                                            : [],
-                                    placeId: hotel.location?.placeId || hotel.placeId || null
-                                },
-                                startTime: hotel.startTime || null,
-                                endTime: hotel.endTime || null,
-                                duration: hotel.duration || null,
-                                price: hotel.price || 0,
-                                priceLevel: hotel.priceLevel || 1,
-                                rating: hotel.rating || 0,
-                                userRatingsTotal: hotel.userRatingsTotal || 0,
-                                photos: hotel.photos && Array.isArray(hotel.photos)
-                                    ? hotel.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
-                                    : hotel.image ? [{ url: hotel.image }] : [],
-                                contact: {
-                                    phone: hotel.contact?.phone || hotel.phone || "",
-                                    email: hotel.contact?.email || "",
-                                    website: hotel.contact?.website || hotel.website || "",
-                                    googleMapsUrl: hotel.contact?.googleMapsUrl || hotel.googleMapsUrl || "",
-                                },
-                                operatingHours: {
-                                    isOpen: hotel.operatingHours?.isOpen || hotel.isOpen || false,
-                                    periods: hotel.operatingHours?.periods
-                                        ? Object.values(hotel.operatingHours.periods.reduce((acc, period) => {
-                                            acc[period.day] = period; // Keep only the last entry per day
-                                            return acc;
-                                        }, {}))
-                                        : (hotel.openDay && hotel.openTime ? [{ day: hotel.openDay, hours: hotel.openTime }] : [])
-                                },
-                                bookingInfo: hotel.bookingInfo || null,
-                                metadata: {
-                                    tags: hotel.tags || [],
-                                    isTemplate: hotel.isTemplate || false,
-                                    language: hotel.language || "en",
-                                    version: hotel.version || 1,
-                                }
-                            })),
+                await updateItineraryById(itineraryId, itineraryData);
+                Toast.show({
+                    type: "success",
+                    text1: "Success",
+                    text2: "Itinerary updated successfully!",
+                });
+            } else {
+                const itineraryData = {
+                    itinerary: {
+                        userId: userData.userId,
+                        title: `${destination} Trip ${new Date().getFullYear()}`,
+                        status: "draft",
+                        visibility: "private",
+                        generatedBy: "AI",
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        tripImg: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80",
+                        tripDetails: {
+                            destination: { name: destination, coordinates: coordinates },
+                            startDate: startDate,
+                            endDate: endDate,
+                            budget: {
+                                currency: "USD",
+                                total: 0,
+                                breakdown: { accommodation: 0, activities: 0, dining: 0, transport: 0 },
+                            },
+                        },
+                        days: tripDays.map((day, index) => ({
+                            date: formatDate(day.date || day.day), // Support both formats
+                            dayNumber: index + 1,
+                            budget: { planned: 0, actual: 0 },
 
-                            activities: (day.sections?.activities || day.items?.filter(item => item.category === "Activity") || []).map(activity => ({
-                                type: "activity",
-                                title: activity.name || activity.title || "Unnamed Activity",
-                                description: activity.description || "",
-                                location: {
-                                    name: activity.location?.name || activity.name || "",
-                                    address: activity.location?.address || activity.address || "",
-                                    coordinates: activity.location?.coordinates
-                                        ? [activity.location.coordinates[0], activity.location.coordinates[1]]
-                                        : activity.coordinates
-                                            ? [activity.coordinates.latitude, activity.coordinates.longitude]
-                                            : [],
-                                    placeId: activity.location?.placeId || activity.placeId || null
-                                },
-                                startTime: activity.startTime || null,
-                                endTime: activity.endTime || null,
-                                duration: activity.duration || null,
-                                price: activity.price || 0,
-                                priceLevel: activity.priceLevel || 1,
-                                rating: activity.rating || 0,
-                                userRatingsTotal: activity.userRatingsTotal || 0,
-                                photos: activity.photos && Array.isArray(activity.photos)
-                                    ? activity.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
-                                    : activity.image ? [{ url: activity.image }] : [],
-                                contact: {
-                                    phone: activity.contact?.phone || activity.phone || "",
-                                    email: activity.contact?.email || activity.email || "",
-                                    website: activity.contact.website || activity.website || "",
-                                    googleMapsUrl: activity.contact?.googleMapsUrl || activity.googleMapsUrl || "",
-                                },
-                                operatingHours: {
-                                    isOpen: activity.operatingHours?.isOpen || activity.isOpen || false,
-                                    periods: activity.operatingHours?.periods
-                                        ? Object.values(activity.operatingHours.periods.reduce((acc, period) => {
-                                            acc[period.day] = period; // Keep only the last entry per day
-                                            return acc;
-                                        }, {}))
-                                        : (activity.openDay && activity.openTime ? [{ day: activity.openDay, hours: activity.openTime }] : [])
-                                },
-                                metadata: {
-                                    tags: activity.tags || [],
-                                    isTemplate: activity.isTemplate || false,
-                                    language: activity.language || "en",
-                                    version: activity.version || 1,
-                                }
-                            })),
+                            sections: {
+                                hotels: (day.sections?.hotels || day.items?.filter(item => item.category === "Hotel")).map(hotel => ({
+                                    id: hotel.id || null,
+                                    type: "hotel",
+                                    title: hotel.name || hotel.title || "Unnamed Hotel",
+                                    description: hotel.description || "",
+                                    location: {
+                                        name: hotel.location?.name || hotel.name || "",
+                                        address: hotel.location?.address || hotel.address || "",
+                                        coordinates: hotel.location?.coordinates
+                                            ? [hotel.location.coordinates[0], hotel.location.coordinates[1]]
+                                            : hotel.coordinates
+                                                ? [hotel.coordinates.latitude, hotel.coordinates.longitude]
+                                                : [],
+                                        placeId: hotel.location?.placeId || hotel.placeId || null
+                                    },
+                                    startTime: hotel.startTime || null,
+                                    endTime: hotel.endTime || null,
+                                    duration: hotel.duration || null,
+                                    price: hotel.price || 0,
+                                    priceLevel: hotel.priceLevel || 1,
+                                    rating: hotel.rating || 0,
+                                    userRatingsTotal: hotel.userRatingsTotal || 0,
+                                    photos: hotel.photos && Array.isArray(hotel.photos)
+                                        ? hotel.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                        : hotel.image ? [{ url: hotel.image }] : [],
+                                    contact: {
+                                        phone: hotel.contact?.phone || hotel.phone || "",
+                                        email: hotel.contact?.email || "",
+                                        website: hotel.contact?.website || hotel.website || "",
+                                        googleMapsUrl: hotel.contact?.googleMapsUrl || hotel.googleMapsUrl || "",
+                                    },
+                                    operatingHours: {
+                                        isOpen: hotel.operatingHours?.isOpen || hotel.isOpen || false,
+                                        periods: hotel.operatingHours?.periods
+                                            ? Object.values(hotel.operatingHours.periods.reduce((acc, period) => {
+                                                acc[period.day] = period; // Keep only the last entry per day
+                                                return acc;
+                                            }, {}))
+                                            : (hotel.openDay && hotel.openTime ? [{ day: hotel.openDay, hours: hotel.openTime }] : [])
+                                    },
+                                    bookingInfo: hotel.bookingInfo || null,
+                                    metadata: {
+                                        tags: hotel.tags || [],
+                                        isTemplate: hotel.isTemplate || false,
+                                        language: hotel.language || "en",
+                                        version: hotel.version || 1,
+                                    }
+                                })),
 
-                            restaurants: (day.sections?.restaurants || day.items?.filter(item => item.category === "Restaurant") || []).map(restaurant => ({
-                                type: "restaurant",
-                                title: restaurant.title || restaurant.name || "",
-                                description: restaurant.description || restaurant.address || "",
-                                location: {
-                                    name: restaurant.location?.name || restaurant.name || "",
-                                    address: restaurant.location?.address || restaurant.address || "",
-                                    coordinates: restaurant.location?.coordinates
-                                        ? [restaurant.location.coordinates[0], restaurant.location.coordinates[1]]
-                                        : restaurant.coordinates
-                                            ? [restaurant.coordinates.latitude, restaurant.coordinates.longitude]
-                                            : [],
-                                    placeId: restaurant.location?.placeId || restaurant.placeId || null
-                                },
-                                startTime: restaurant.startTime || null,
-                                endTime: restaurant.endTime || null,
-                                duration: restaurant.duration || null,
-                                price: restaurant.price || 0,
-                                priceLevel: restaurant.priceLevel || 1,
-                                rating: restaurant.rating || 0,
-                                userRatingsTotal: restaurant.userRatingsTotal || 0,
-                                photos: restaurant.photos && Array.isArray(restaurant.photos)
-                                    ? restaurant.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
-                                    : restaurant.image ? [{ url: restaurant.image }] : [],
-                                contact: {
-                                    phone: restaurant?.contact?.phone || restaurant.phone || "",
-                                    email: restaurant?.contact?.email || restaurant.email || "",
-                                    website: restaurant?.contact?.website || restaurant.website || "",
-                                    googleMapsUrl: restaurant?.contact?.googleMapsUrl || restaurant.googleMapsUrl || "",
-                                },
-                                operatingHours: {
-                                    isOpen: restaurant.isOpen || false,
-                                    periods: restaurant.operatingHours?.periods
-                                        ? Object.values(restaurant.operatingHours.periods.reduce((acc, period) => {
-                                            acc[period.day] = period; // Keep only the last entry per day
-                                            return acc;
-                                        }, {}))
-                                        : (restaurant.openDay && restaurant.openTime ? [{ day: restaurant.openDay, hours: restaurant.openTime }] : [])
-                                },
-                                metadata: {
-                                    tags: restaurant.tags || [],
-                                    isTemplate: restaurant.isTemplate || false,
-                                    language: restaurant.language || "en",
-                                    version: restaurant.version || 1,
-                                },
-                                cuisine: restaurant.cuisine || [],
-                            })),
-                        }
-                    })),
-                },
-            };
+                                activities: (day.sections?.activities || day.items?.filter(item => item.category === "Activity")).map(activity => ({
+                                    type: "activity",
+                                    title: activity.name || activity.title || "Unnamed Activity",
+                                    description: activity.description || "",
+                                    location: {
+                                        name: activity.location?.name || activity.name || "",
+                                        address: activity.location?.address || activity.address || "",
+                                        coordinates: activity.location?.coordinates
+                                            ? [activity.location.coordinates[0], activity.location.coordinates[1]]
+                                            : activity.coordinates
+                                                ? [activity.coordinates.latitude, activity.coordinates.longitude]
+                                                : [],
+                                        placeId: activity.location?.placeId || activity.placeId || null
+                                    },
+                                    startTime: activity.startTime || null,
+                                    endTime: activity.endTime || null,
+                                    duration: activity.duration || null,
+                                    price: activity.price || 0,
+                                    priceLevel: activity.priceLevel || 1,
+                                    rating: activity.rating || 0,
+                                    userRatingsTotal: activity.userRatingsTotal || 0,
+                                    photos: activity.photos && Array.isArray(activity.photos)
+                                        ? activity.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                        : activity.image ? [{ url: activity.image }] : [],
+                                    contact: {
+                                        phone: activity.contact?.phone || activity.phone || "",
+                                        email: activity.contact?.email || activity.email || "",
+                                        website: activity.contact.website || activity.website || "",
+                                        googleMapsUrl: activity.contact?.googleMapsUrl || activity.googleMapsUrl || "",
+                                    },
+                                    operatingHours: {
+                                        isOpen: activity.operatingHours?.isOpen || activity.isOpen || false,
+                                        periods: activity.operatingHours?.periods
+                                            ? Object.values(activity.operatingHours.periods.reduce((acc, period) => {
+                                                acc[period.day] = period; // Keep only the last entry per day
+                                                return acc;
+                                            }, {}))
+                                            : (activity.openDay && activity.openTime ? [{ day: activity.openDay, hours: activity.openTime }] : [])
+                                    },
+                                    metadata: {
+                                        tags: activity.tags || [],
+                                        isTemplate: activity.isTemplate || false,
+                                        language: activity.language || "en",
+                                        version: activity.version || 1,
+                                    }
+                                })),
 
-            console.log("Saving Itinerary - ID:", itineraryId);
-            console.log("Saving Itinerary - Data:", JSON.stringify(itineraryData, null, 2))
+                                restaurants: (day.sections?.restaurants || day.items?.filter(item => item.category === "Restaurant")).map(restaurant => ({
+                                    type: "restaurant",
+                                    title: restaurant.title || restaurant.name || "",
+                                    description: restaurant.description || restaurant.address || "",
+                                    location: {
+                                        name: restaurant.location?.name || restaurant.name || "",
+                                        address: restaurant.location?.address || restaurant.address || "",
+                                        coordinates: restaurant.location?.coordinates
+                                            ? [restaurant.location.coordinates[0], restaurant.location.coordinates[1]]
+                                            : restaurant.coordinates
+                                                ? [restaurant.coordinates.latitude, restaurant.coordinates.longitude]
+                                                : [],
+                                        placeId: restaurant.location?.placeId || restaurant.placeId || null
+                                    },
+                                    startTime: restaurant.startTime || null,
+                                    endTime: restaurant.endTime || null,
+                                    duration: restaurant.duration || null,
+                                    price: restaurant.price || 0,
+                                    priceLevel: restaurant.priceLevel || 1,
+                                    rating: restaurant.rating || 0,
+                                    userRatingsTotal: restaurant.userRatingsTotal || 0,
+                                    photos: restaurant.photos && Array.isArray(restaurant.photos)
+                                        ? restaurant.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                        : restaurant.image ? [{ url: restaurant.image }] : [],
+                                    contact: {
+                                        phone: restaurant?.contact?.phone || restaurant.phone || "",
+                                        email: restaurant?.contact?.email || restaurant.email || "",
+                                        website: restaurant?.contact?.website || restaurant.website || "",
+                                        googleMapsUrl: restaurant?.contact?.googleMapsUrl || restaurant.googleMapsUrl || "",
+                                    },
+                                    operatingHours: {
+                                        isOpen: restaurant.isOpen || false,
+                                        periods: restaurant.operatingHours?.periods
+                                            ? Object.values(restaurant.operatingHours.periods.reduce((acc, period) => {
+                                                acc[period.day] = period; // Keep only the last entry per day
+                                                return acc;
+                                            }, {}))
+                                            : (restaurant.openDay && restaurant.openTime ? [{ day: restaurant.openDay, hours: restaurant.openTime }] : [])
+                                    },
+                                    metadata: {
+                                        tags: restaurant.tags || [],
+                                        isTemplate: restaurant.isTemplate || false,
+                                        language: restaurant.language || "en",
+                                        version: restaurant.version || 1,
+                                    },
+                                    cuisine: restaurant.cuisine || [],
+                                })),
+                            }
+                        })),
+                    },
+                };
 
-            // console.log("Saving Itinerary:", itineraryData);
-            // if (itineraryId) {
-            //     await updateItineraryById(itineraryId, itineraryData);
-            //     Toast.show({
-            //         type: "success",
-            //         text1: "Success",
-            //         text2: "Itinerary updated successfully!",
-            //     });
-            // } else {
-            //     await createItineraries(itineraryData);
-            //     Toast.show({
-            //         type: "success",
-            //         text1: "Success",
-            //         text2: "Itinerary saved successfully!",
-            //     });
-            // }
-            // navigation.navigate("TabStack");
+                await createItineraries(itineraryData);
+                Toast.show({
+                    type: "success",
+                    text1: "Success",
+                    text2: "Itinerary saved successfully!",
+                });
+            }
+
+            navigation.navigate("TabStack");
         } catch (error) {
             logger.error("Error saving itinerary:", error);
 
@@ -421,72 +602,57 @@ const AiPlanTripDetails = ({ navigation }) => {
 
     const handleItemPress = (item, dayIndex) => {
         setSelectedItem({ ...item, dayIndex }); // Store item and its day index
-        console.log("Selected Item for deletion:", { dayIndex });
+        logger.info("Selected Item for deletion:", { ...item, dayIndex });
         refRBSheet.current.open();  // Open the bottom sheet
     };
 
     const handlePlaceAction = (place, actionType) => {
-        if (!place || !place.location || !Array.isArray(place.location.coordinates)) {
-            alert("Location data is missing.");
-            return;
-        }
-
-        const { coordinates } = place.location;
-        const [latitude, longitude] = coordinates;
-
-        console.log("Place location coordinates:", coordinates);
-
         try {
+            if (!place || !place.location || !Array.isArray(place.location.coordinates)) {
+                logger.warn("Location data is missing. Redirecting to Google Maps.");
+                Linking.openURL("https://www.google.com/maps"); // ✅ Default to Google Maps
+                return;
+            }
+
+            const { coordinates } = place.location;
+            const [latitude, longitude] = coordinates;
+
+            if (!latitude || !longitude) {
+                logger.warn("Invalid coordinates. Redirecting to Google Maps.");
+                Linking.openURL("https://www.google.com/maps");
+                return;
+            }
+
             switch (actionType) {
                 case "viewPlace":
-                    if (latitude && longitude) {
-                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-                        Linking.openURL(mapsUrl);
-                    } else {
-                        alert("Coordinates not available.");
-                    }
+                    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
                     break;
 
                 case "directions":
-                    if (latitude && longitude) {
-                        const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
-                        Linking.openURL(directionsUrl);
-                    } else {
-                        alert("Coordinates not available.");
-                    }
+                    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`);
                     break;
 
                 case "website":
-                    let websiteUrl = place.contact?.website?.trim();
-
-                    // If the website URL is missing or empty, open Google
-                    if (!websiteUrl) {
-                        websiteUrl = "https://www.google.com";
-                    }
-                    // If the URL does NOT start with http or https, prepend "https://"
-                    else if (!/^https?:\/\//i.test(websiteUrl)) {
+                    let websiteUrl = place.contact?.website?.trim() || "https://www.google.com"; // ✅ Default to Google if no website
+                    if (!/^https?:\/\//i.test(websiteUrl)) {
                         websiteUrl = `https://${websiteUrl}`;
                     }
-
                     Linking.openURL(websiteUrl);
                     break;
 
                 default:
-                    alert("Invalid action.");
+                    break
             }
         } catch (error) {
-            console.error("Error opening URL:", error);
-            alert("Something went wrong. Please try again.");
+            logger.error("Error opening URL:", error);
         }
     };
 
     const handleDeleteItem = () => {
         if (!selectedItem || selectedItem.dayIndex === undefined) {
-            console.log("No valid item selected for deletion.");
+            logger.error("No valid item selected for deletion.");
             return;
         }
-
-        console.log("Deleting item from Day Index:", selectedItem.dayIndex, "Item ID:", selectedItem.id);
 
         dispatch({
             type: DELETE_TRIP_DAY_ITEM,
@@ -495,8 +661,6 @@ const AiPlanTripDetails = ({ navigation }) => {
                 itemId: selectedItem.id,        // Identify the correct item
             },
         });
-
-        console.log(`Deleted item with ID: ${selectedItem.id} from dayIndex: ${selectedItem.dayIndex}`);
 
         // Close the bottom sheet
         refRBSheet.current.close();
@@ -508,7 +672,6 @@ const AiPlanTripDetails = ({ navigation }) => {
             text2: "Item removed from itinerary",
         });
     };
-
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>

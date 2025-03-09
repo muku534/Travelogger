@@ -88,7 +88,7 @@ const PlanTrip = ({ navigation }) => {
     const end = new Date(endDate);
     const numberOfDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 
-    const generatedDays = Array.from({ length: numberOfDays}, (_, i) => {
+    const generatedDays = Array.from({ length: numberOfDays }, (_, i) => {
       const newDate = new Date(start);
       newDate.setDate(start.getDate() + i);
 
@@ -100,6 +100,8 @@ const PlanTrip = ({ navigation }) => {
     });
 
     // ✅ Now tripDays is properly initialized before dispatching
+    console.log(" start date", startDate.toISOString().split("T")[0],)
+    console.log("end date", endDate.toISOString().split("T")[0],)
     dispatch({
       type: SET_TRIP_DETAILS,
       payload: {
