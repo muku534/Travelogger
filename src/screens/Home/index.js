@@ -35,38 +35,21 @@ const featureData = [
     { id: '2', IconComponent: CreateWithAIIcon, title: 'Create with AI' },
 ];
 
-// const placeCategories = [
-//     {
-//         title: 'Top Visited Places', data: [
-//             { id: '2', image: Images.usa, title: 'USA' },
-//             { id: '3', image: Images.thailand, title: 'Thailand' },
-//             { id: '4', image: Images.turkey, title: 'Turkey' },
-//         ]
-//     },
-//     {
-//         title: 'Rated Places for you', data: [
-//             { id: '5', image: Images.canada, title: 'Canada' },
-//             { id: '6', image: Images.bristol, title: 'Bristol' },
-//             { id: '7', image: Images.turkey, title: 'Paris' },
-//         ]
-//     }
-// ];
-
 const placeCategories = [
     {
         title: 'Top Visited Places',
         data: [
-            { id: '2', image: Images.usa, title: 'USA', blogUrl: 'https://www.headout.com/grand-canyon-tours-c-528/' },
-            { id: '3', image: Images.thailand, title: 'Thailand', blogUrl: 'https://www.headout.com/blog/statue-of-liberty/' },
-            { id: '4', image: Images.turkey, title: 'Turkey', blogUrl: 'https://www.headout.com/things-to-do-city-dubai/?ci=1&cm=554851998_1307320455972971_c_o_www.headout.com_b_%7Bextensionid%7D_&msclkid=0765f0022e78167dab2997c96d816e08&utm_campaign=Dubai%20-%20Performance%20Max%20-%20English%20-%20Rest%20of%20World%20-%20Performance%20Max%20-%20All%20-%20All&utm_content=Dubai%20City%20Page&utm_medium=cpc&utm_source=bing&utm_term=www.headout.com' },
+            { id: '2', image: Images.usa, title: 'USA', blogUrl: 'https://www.makemytrip.com/tripideas/country/usa' },
+            { id: '3', image: Images.thailand, title: 'Thailand', blogUrl: 'https://www.makemytrip.com/tripideas/country/thailand' },
+            { id: '4', image: Images.turkey, title: 'Turkey', blogUrl: 'https://www.makemytrip.com/tripideas/country/turkey' },
         ]
     },
     {
         title: 'Rated Places for you',
         data: [
-            { id: '5', image: Images.canada, title: 'Canada', blogUrl: 'https://www.headout.com/grand-canyon-tours-c-528/' },
-            { id: '6', image: Images.bristol, title: 'Bristol', blogUrl: 'https://www.headout.com/blog/statue-of-liberty/' },
-            { id: '7', image: Images.turkey, title: 'Paris', blogUrl: 'https://www.headout.com/things-to-do-city-dubai/?ci=1&cm=554851998_1307320455972971_c_o_www.headout.com_b_%7Bextensionid%7D_&msclkid=0765f0022e78167dab2997c96d816e08&utm_campaign=Dubai%20-%20Performance%20Max%20-%20English%20-%20Rest%20of%20World%20-%20Performance%20Max%20-%20All%20-%20All&utm_content=Dubai%20City%20Page&utm_medium=cpc&utm_source=bing&utm_term=www.headout.com' },
+            { id: '5', image: Images.canada, title: 'Canada', blogUrl: 'https://www.makemytrip.com/tripideas/country/canada' },
+            { id: '6', image: Images.bristol, title: 'Bristol', blogUrl: 'https://www.makemytrip.com/tripideas/country/bristol' },
+            { id: '7', image: Images.turkey, title: 'Paris', blogUrl: 'https://www.makemytrip.com/tripideas/country/paris' },
         ]
     }
 ];

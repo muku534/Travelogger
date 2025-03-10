@@ -56,23 +56,23 @@ const FloatingActionButton = () => {
             <View style={styles.floatingContainer}>
                 {/* Button 2 */}
                 <Animated.View style={[styles.floatingButton, { transform: [{ translateY: button2TranslateY }] }]}>
-                    <LinearGradient
-                        colors={[COLORS.RoyalBlueViolet, COLORS.DeepTeal]} // Gradient Colors
-                        start={{ x: 0, y: 0 }} // Left
-                        end={{ x: 1, y: 0 }}   // Right
-                        style={[styles.actionButton]}
+                    <TouchableOpacity
+                        onPress={() => {
+                            closeMenu();
+                            navigation.navigate("AIPlainIntro");
+                        }}
+                        activeOpacity={0.7}
+                        style={{ width: "100%", height: "100%", }}
                     >
-                        <TouchableOpacity
-
-                            onPress={() => {
-                                closeMenu();
-                                navigation.navigate("AIPlainIntro");
-                            }}
-                            activeOpacity={0.7}
+                        <LinearGradient
+                            colors={[COLORS.RoyalBlueViolet, COLORS.DeepTeal]} // Gradient Colors
+                            start={{ x: 0, y: 0 }} // Left
+                            end={{ x: 1, y: 0 }}   // Right
+                            style={[styles.actionButton]}
                         >
                             <SVGS.AITRIPEICON width={hp(3.5)} height={hp(3.5)} />
-                        </TouchableOpacity>
-                    </LinearGradient>
+                        </LinearGradient>
+                    </TouchableOpacity>
                 </Animated.View>
 
 
@@ -187,7 +187,7 @@ const TabStack = () => {
                         focused ? <SVGS.PROFILEACTIVEICON width={hp(3.3)} height={hp(3.3)} />
                             : <SVGS.PROFILE width={hp(3.3)} height={hp(3.3)} />
                     ),
-                    tabBarLabel: "Profile", 
+                    tabBarLabel: "Profile",
                 }}
             />
         </Tab.Navigator>
