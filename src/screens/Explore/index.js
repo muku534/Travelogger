@@ -106,7 +106,7 @@ const Explore = ({ route }) => {
                     params: {
                         location: `${latitude},${longitude}`,
                         radius: 5000, // 5km radius
-                        type: "restaurant", // Change based on your requirement
+                        type: "tourist_attraction|park|museum|amusement_park|zoo|aquarium|stadium|night_club|bowling_alley", // Change based on your requirement
                         key: GOOGLE_API_KEY,
                     },
                 }
@@ -356,4 +356,3 @@ const styles = StyleSheet.create({
     },
 
 });
-
