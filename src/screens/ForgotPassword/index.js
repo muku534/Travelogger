@@ -7,15 +7,20 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import ForgotPasswordImage from "../../../assets/images/Forgot_Password.svg";
 import Button from '../../components/Button';
 import Email from '../../../assets/icons/email.svg';
-import Toast from 'react-native-toast-message';  // Import Toast
+import Toast from 'react-native-toast-message';
+import { sendOTP } from '../../services/authService';
 
 const ForgotPassword = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = () => {
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
+    const handleSendOTP = async () => {
         if (email.trim() === '') {
-            // Show a toast message if email is not entered
             Toast.show({
                 type: 'error',
                 position: 'top',
@@ -26,12 +31,29 @@ const ForgotPassword = ({ navigation }) => {
             return;
         }
 
+        if (!validateEmail(email)) {
+            Toast.show({
+                type: 'error',
+                position: 'top',
+                text1: 'Invalid Email',
+                text2: 'Please enter a valid email address.',
+                visibilityTime: 3000,
+            });
+            return;
+        }
+
         setLoading(true);
-        // Simulate a network request here
-        setTimeout(() => {
-            setLoading(false);
-            navigation.navigate("CreatePassword", { email });
-        }, 200); // Simulating network request with timeout
+        try {
+            await sendOTP(email);
+            Toast.show({ type: "success", text1: "OTP Sent", text2: "Check your email for the OTP." });
+
+            setTimeout(() => {
+                navigation.navigate("OtpVerification", { email });
+            }, 1000);
+        } catch (error) {
+            Toast.show({ type: "error", text1: "Error", text2: error.message || "Failed to send OTP." });
+        }
+        setLoading(false);
     };
 
     return (
@@ -74,10 +96,8 @@ const ForgotPassword = ({ navigation }) => {
 
                 {/* Submit Button */}
                 <Button
-                    title={"Continue"}
-                    color={COLORS.red}
-                    onPress={handleSubmit}
-                    style={styles.button}
+                    title={loading ? "Sending OTP..." : "Send OTP"}
+                    onPress={handleSendOTP}
                     disabled={loading}
                 />
             </View>

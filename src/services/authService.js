@@ -47,6 +47,24 @@ export const updateProfile = async (userId, updatedData) => {
     }
 };
 
+export const sendOTP = async (email) => {
+    try {
+        const response = await api.post(`/email/send-otp?email=${email}`);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: "somthing went wrong to send otp" };
+    }
+};
+
+export const verifyOTP = async (email, OTP) => {
+    try {
+        const response = await api.post(`/email/verify-otp?email=${email}&otp=${OTP}`);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: "Something went wrong while verifying OTP." };
+    }
+};
+
 export const updatePassword = async (requestedData) => {
     try {
         const response = await api.put('/password/update', requestedData);

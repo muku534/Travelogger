@@ -5,39 +5,61 @@ import { COLORS, fontFamily } from "../../../constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Button from '../../components/Button';
 import OTPVerification from '../../../assets/icons/OTP_Verification.svg'
-import logger from '../../utils/logger';
+import Toast from 'react-native-toast-message';
+import { verifyOTP } from '../../services/authService';
 
-const OtpVerification = ({ navigation }) => {
-    const [otp, setOtp] = useState(['', '', '', '']);
-    const [resendTimer, setResendTimer] = useState(30);
-    const inputs = useRef([]);
+const OtpVerification = ({ navigation, route }) => {
+    const { email } = route.params;
+    const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+    const [loading, setLoading] = useState(false);
+    const inputRefs = Array(6).fill().map(() => useRef());
 
-    // Handle OTP input change
-    const handleOtpChange = (value, index) => {
+    const handleOTPChange = (value, index) => {
+        if (!/^\d?$/.test(value)) return; // Ensure only numbers are entered
+
         let newOtp = [...otp];
         newOtp[index] = value;
         setOtp(newOtp);
 
-        // Move focus to the next input field
-        if (value && index < 3) {
-            inputs.current[index + 1].focus();
+        // Move focus to next input field
+        if (value && index < 5) {
+            inputRefs[index + 1].current.focus();
         }
     };
 
-    // Resend OTP Timer
-    useEffect(() => {
-        if (resendTimer > 0) {
-            const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
-            return () => clearTimeout(timer);
-        }
-    }, [resendTimer]);
+    // Handle backspace
+    const handleBackspace = (index) => {
+        let newOtp = [...otp];
+        newOtp[index] = "";
+        setOtp(newOtp);
 
-    // Handle OTP Submit
-    const handleSubmit = () => {
-        const enteredOtp = otp.join('');
-        logger.info("Entered OTP:", enteredOtp);
-        navigation.navigate("CreatePassword")
-        // Perform OTP verification logic here
+        if (index > 0) {
+            inputRefs[index - 1].current.focus();
+        }
+    };
+
+    const handleSubmitOTP = async () => {
+        const OTP = otp.join("");
+
+        if (OTP.length !== 6) {
+            Toast.show({ type: "error", text1: "Invalid OTP", text2: "Enter the 6-digit OTP." });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await verifyOTP(email, OTP);
+            Toast.show({ type: "success", text1: "OTP Verified", text2: "You can now create a new password." });
+            setTimeout(() => {
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'CreatePassword', params: { email } }], // ✅ Correct way to pass email
+                });
+            }, 1000);
+        } catch (error) {
+            Toast.show({ type: "error", text1: "Verification Failed", text2: error.message || "Invalid OTP." });
+        }
+        setLoading(false);
     };
 
     return (
@@ -66,28 +88,28 @@ const OtpVerification = ({ navigation }) => {
                         {otp.map((digit, index) => (
                             <TextInput
                                 key={index}
-                                ref={(el) => (inputs.current[index] = el)}
+                                ref={inputRefs[index]}
                                 style={styles.otpBox}
                                 maxLength={1}
                                 keyboardType="numeric"
                                 value={digit}
-                                onChangeText={(value) => handleOtpChange(value, index)}
+                                onChangeText={(value) => handleOTPChange(value, index)}
+                                onKeyPress={({ nativeEvent }) => {
+                                    if (nativeEvent.key === "Backspace") {
+                                        handleBackspace(index);
+                                    }
+                                }}
                             />
                         ))}
                     </View>
 
                     {/* Submit Button */}
                     <Button
-                        title="Send OTP"
-                        color={COLORS.red}
-                        onPress={handleSubmit}
-                        style={styles.button}
+                        title={loading ? "Verifying OTP..." : "Verify OTP"}
+                        onPress={handleSubmitOTP}
+                        disabled={loading}
                     />
 
-                    {/* Resend Timer */}
-                    <Text style={styles.resendText}>
-                        Resend {resendTimer > 0 ? `00:${resendTimer < 10 ? `0${resendTimer}` : resendTimer}` : "Now"}
-                    </Text>
                 </View>
             </View>
         </SafeAreaView>
@@ -125,16 +147,16 @@ const styles = StyleSheet.create({
     otpContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        width: wp(60),
         marginBottom: hp(3),
     },
     otpBox: {
-        width: wp(12),
-        height: wp(12),
+        width: wp(12.5),
+        height: wp(12.5),
         borderRadius: wp(2),
-        borderColor: COLORS.gray,
+        borderColor: COLORS.Midgray,
+        marginHorizontal: wp(1.5),
         color: COLORS.darkgray,
-        borderWidth: 1,
+        borderWidth: 0.7,
         textAlign: 'center',
         fontSize: wp(5),
         fontFamily: fontFamily.FONTS.bold
@@ -145,10 +167,5 @@ const styles = StyleSheet.create({
         borderRadius: wp(3),
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    resendText: {
-        fontSize: wp(4),
-        color: COLORS.Midgray,
-        marginTop: hp(2),
     },
 });
