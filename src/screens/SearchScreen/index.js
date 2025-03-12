@@ -56,8 +56,6 @@ const SearchScreen = ({ route }) => {
         }).start();
     }, [showSuggestions]);
 
-    //  Fetch Place Suggestions from Google Places API 
-
     const fetchPlaces = async (input) => {
         if (!input.trim()) {
             setSuggestions([]);
@@ -72,35 +70,33 @@ const SearchScreen = ({ route }) => {
                         input,
                         key: GOOGLE_API_KEY,
                         language: "en",
+                        location: `${coordinates[0]},${coordinates[1]}`,
+                        radius: 50000,
+                        strictbounds: true,
                     },
                 }
             );
 
-            if (response.data.status === "OK") {
+            if (response.data.status === "OK" && response.data.predictions.length > 0) {
                 setSuggestions(response.data.predictions);
                 setShowSuggestions(true);
             } else {
-                setSuggestions([]);
-                setShowSuggestions(false);
+                setSuggestions([{ description: "No results found nearby", place_id: "not_found" }]); // ✅ Show "No results found"
+                setShowSuggestions(true);
             }
         } catch (error) {
             logger.error("Error fetching places:", error);
-            setSuggestions([]);
+            setSuggestions([{ description: "Error fetching results", place_id: "error" }]); // ✅ Handle API errors gracefully
             setShowSuggestions(true);
         }
     };
 
-    //  Optimize API Calls with Debounce 
-
     const debouncedFetchPlaces = useCallback(debounce(fetchPlaces, 500), []);
-
-    //  Handle Destination Input Change 
 
     const handleDestinationChange = (text) => {
         setDestination(text);
         debouncedFetchPlaces(text);
     };
-
 
     //  Handle Place Selection
     const handlePlaceSelect = async (place) => {
@@ -132,7 +128,7 @@ const SearchScreen = ({ route }) => {
                         ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${details.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
                         : "https://via.placeholder.com/400",
                 };
-
+                console.log("placeDetails", placeDetails)
                 setSelectedLocation({ latitude: lat, longitude: lng });
                 setSelectedPlaceDetails(placeDetails);
             }
