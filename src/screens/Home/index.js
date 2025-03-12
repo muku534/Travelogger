@@ -39,22 +39,20 @@ const placeCategories = [
     {
         title: 'Top Visited Places',
         data: [
-            { id: '2', image: Images.usa, title: 'USA', blogUrl: 'https://www.makemytrip.com/tripideas/country/usa' },
-            { id: '3', image: Images.thailand, title: 'Thailand', blogUrl: 'https://www.makemytrip.com/tripideas/country/thailand' },
-            { id: '4', image: Images.turkey, title: 'Turkey', blogUrl: 'https://www.makemytrip.com/tripideas/country/turkey' },
+            { id: '2', image: Images.usa, title: 'New York', blogUrl: 'https://www.makemytrip.com/tripideas/places/new-york' },
+            { id: '3', image: Images.thailand, title: 'Las Vegas', blogUrl: 'https://www.makemytrip.com/tripideas/places/las-vegas' },
+            { id: '4', image: Images.turkey, title: 'Miami', blogUrl: 'https://www.makemytrip.com/tripideas/places/miami' },
         ]
     },
     {
         title: 'Rated Places for you',
         data: [
-            { id: '5', image: Images.canada, title: 'Canada', blogUrl: 'https://www.makemytrip.com/tripideas/country/canada' },
-            { id: '6', image: Images.bristol, title: 'Bristol', blogUrl: 'https://www.makemytrip.com/tripideas/country/bristol' },
-            { id: '7', image: Images.turkey, title: 'Paris', blogUrl: 'https://www.makemytrip.com/tripideas/country/paris' },
+            { id: '5', image: Images.canada, title: 'San Francisco', blogUrl: 'https://www.makemytrip.com/tripideas/places/san-francisco' },
+            { id: '6', image: Images.bristol, title: 'Washington D.C.', blogUrl: 'https://www.makemytrip.com/tripideas/places/washington' },
+            { id: '7', image: Images.turkey, title: 'Chicago', blogUrl: 'https://www.makemytrip.com/tripideas/places/chicago' },
         ]
     }
 ];
-
-
 
 const Main = ({ navigation }) => {
     const [activeHeroIndex, setActiveHeroIndex] = useState(0);
@@ -308,4 +306,3 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 });
-
