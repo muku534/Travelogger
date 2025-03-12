@@ -2,7 +2,7 @@ import React, { act, useEffect, useRef, useState, version } from 'react';
 import { View, Text, ImageBackground, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, StatusBar, Animated, Image, ScrollView, Linking, Modal, TextInput, ActivityIndicator, Platform, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
-import { COLORS, fontFamily, SVGS } from '../../../constants';
+import { COLORS, fontFamily, Images, SVGS } from '../../../constants';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import MapView, { Marker } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
@@ -15,7 +15,7 @@ import { DELETE_TRIP_DAY_ITEM } from '../../redux/Actions';
 const PlanTripDetails = ({ navigation, route }) => {
     const refRBSheet = useRef(null); // Bottom Sheet Ref
     const dispatch = useDispatch();
-    const { itineraryId, destination, startDate, endDate, coordinates, tripDays } = useSelector(state => state.tripDetails);
+    const { itineraryId, destination, startDate, endDate, tripImg, coordinates, tripDays } = useSelector(state => state.tripDetails);
     const [modalVisible, setModalVisible] = useState(false);
     const [email, setEmail] = useState('');
     const [emailError, setEmailError] = useState("");
@@ -26,8 +26,6 @@ const PlanTripDetails = ({ navigation, route }) => {
     const [loading, setLoading] = useState(false);
     const [distances, setDistances] = useState({});
     const [selectedItem, setSelectedItem] = useState(null);
-    // const [tripDays, setTripDays] = useState([]);
-
 
     const handleShareItinerary = async () => {
         // Email validation
@@ -221,9 +219,16 @@ const PlanTripDetails = ({ navigation, route }) => {
         calculateDistances();
     }, [tripDays]);
 
-
     const handleAddItem = (type, dayIndex) => {
-        navigation.navigate("SearchScreen", { type, dayIndex, isSearchOnly: false });
+        navigation.navigate("SearchScreen", { type, dayIndex, isSearchOnly: false, coordinates });
+    };
+
+    const formatDate = (inputDate) => {
+        const date = new Date(inputDate);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // ✅ Ensure two-digit month
+        const day = String(date.getDate()).padStart(2, '0'); // ✅ Ensure two-digit day
+        return `${year}-${month}-${day}`;
     };
 
     const handleSaveItinerary = async () => {
@@ -240,7 +245,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                     generatedBy: "manual",
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
-                    tripImg: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80",
+                    tripImg: tripImg,
                     tripDetails: {
                         destination: { name: destination, coordinates: coordinates },
                         startDate: startDate,
@@ -252,7 +257,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                         },
                     },
                     days: tripDays.map((day, index) => ({
-                        date: new Date(day.day).toISOString(), // Convert date to YYYY-MM-DD
+                        date: formatDate(day.date || day.day), // Convert date to YYYY-MM-DD
                         dayNumber: index + 1, // Ensure day_number is sequential
                         budget: { planned: 0, actual: 0 }, // Required budget field
                         sections: {
@@ -326,7 +331,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                                     contact: {
                                         phone: activity.contact?.phone || activity.phone || "",
                                         email: activity.contact?.email || activity.email || "",
-                                        website: activity.contact.website || activity.website || "",
+                                        website: activity.contact?.website || activity.website || "",
                                         googleMapsUrl: activity.contact?.googleMapsUrl || activity.googleMapsUrl || "",
                                     },
                                     operatingHours: activity.operatingHours || {},
@@ -506,6 +511,18 @@ const PlanTripDetails = ({ navigation, route }) => {
         });
     };
 
+    const getMarkerImage = (type) => {
+        switch (type) {
+            case "hotel":
+                return Images.hotelMarker;
+            case "activity":
+                return Images.activityMarker;
+            case "restaurant":
+                return Images.restaurantMarker;
+            default:
+                return Images.hotelMarker; // A fallback icon
+        }
+    };
 
 
     return (
@@ -515,7 +532,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                 <View style={styles.container}>
                     {/* Header Image with Overlay */}
                     {activeTab === 'List' ? (
-                        <ImageBackground source={{ uri: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80" }} style={styles.headerImage}>
+                        <ImageBackground source={{ uri: tripImg }} style={styles.headerImage}>
                             <View style={styles.overlay} />
                         </ImageBackground>
                     ) : (
@@ -523,14 +540,13 @@ const PlanTripDetails = ({ navigation, route }) => {
                             provider="google"
                             style={{ width: wp(100), height: hp(30) }}
                             initialRegion={{
-                                latitude: coordinates?.[0] || 22.3193, // Default to Hong Kong
+                                latitude: coordinates?.[0] || 22.3193, // Default if missing
                                 longitude: coordinates?.[1] || 114.1694,
                                 latitudeDelta: 0.1,
                                 longitudeDelta: 0.1,
                             }}
-                            onMapReady={() => console.log("Map Loaded")}
-                            onError={(error) => console.log("Map Error: ", error)}
                         >
+                            {/* ✅ Show Main Destination Marker */}
                             <Marker
                                 coordinate={{
                                     latitude: coordinates?.[0] || 22.3193,
@@ -539,6 +555,28 @@ const PlanTripDetails = ({ navigation, route }) => {
                                 title={destination}
                                 description="Main Destination"
                             />
+
+                            {/* ✅ Loop through `tripDays` and show all places */}
+                            {tripDays?.map((day, dayIndex) =>
+                                day.items?.map((place, placeIndex) => {
+                                    const placeCoords = place?.location?.coordinates;
+                                    if (!placeCoords || placeCoords.length !== 2) return null; // Ensure valid coordinates
+
+                                    return (
+                                        <Marker
+                                            key={`marker-${dayIndex}-${placeIndex}`}
+                                            coordinate={{
+                                                latitude: placeCoords[0],
+                                                longitude: placeCoords[1],
+                                            }}
+                                            title={place.name || "Unknown Place"}
+                                            description={place.description || "No description available"}
+                                        >
+                                            <Image source={getMarkerImage(place.type)} style={styles.customMarker} />
+                                        </Marker>
+                                    );
+                                })
+                            )}
                         </MapView>
 
                     )}
@@ -656,9 +694,15 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                             </View>
                                                             <View style={styles.placeDetails}>
                                                                 <Text style={styles.placeTitle} numberOfLines={1}>{hotel.title || hotel.name || "Unnamed Hotel"}</Text>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'flex-start', width: wp(49) }}>
+                                                                    <Ionicons name="location-outline" size={hp(2)} style={{ paddingRight: wp(1) }} color={COLORS.Midgray} />
+                                                                    <Text style={styles.placeAddress} numberOfLines={2}>{hotel.location?.address || hotel.address || "Unnamed Hotel"}</Text>
+                                                                </View>
+                                                            </View>
+                                                            <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                                                <Text style={styles.placePrice}>${hotel.price || 0}</Text>
                                                                 <Text style={styles.placeCategory} numberOfLines={1}>⭐ {hotel.rating || "N/A"}</Text>
                                                             </View>
-                                                            <Text style={styles.placePrice}>${hotel.price || 0}</Text>
                                                         </View>
 
                                                         {hotelIndex < hotels.length - 1 && (
@@ -714,9 +758,15 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                             </View>
                                                             <View style={styles.placeDetails}>
                                                                 <Text style={styles.placeTitle} numberOfLines={1}>{activity.title || activity.name || "Unnamed Activity"}</Text>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'flex-start', width: wp(49) }}>
+                                                                    <Ionicons name="location-outline" size={hp(2)} style={{ paddingRight: wp(1) }} color={COLORS.Midgray} />
+                                                                    <Text style={styles.placeAddress} numberOfLines={2}>{activity.location?.address || activity.address || "Unnamed Hotel"}</Text>
+                                                                </View>
+                                                            </View>
+                                                            <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                                                <Text style={styles.placePrice}>${activity.price || 0}</Text>
                                                                 <Text style={styles.placeCategory} numberOfLines={1}>⭐ {activity.rating || "N/A"}</Text>
                                                             </View>
-                                                            <Text style={styles.placePrice}>${activity.price || 0}</Text>
                                                         </View>
 
                                                         {activityIndex < activities.length - 1 && (
@@ -764,9 +814,15 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                             </View>
                                                             <View style={styles.placeDetails}>
                                                                 <Text style={styles.placeTitle} numberOfLines={1}>{restaurant.title || restaurant.name || "Unnamed Restaurant"}</Text>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'flex-start', width: wp(49) }}>
+                                                                    <Ionicons name="location-outline" size={hp(2)} style={{ paddingRight: wp(1) }} color={COLORS.Midgray} />
+                                                                    <Text style={styles.placeAddress} numberOfLines={2}>{restaurant.location?.address || restaurant.address || "Unnamed Hotel"}</Text>
+                                                                </View>
+                                                            </View>
+                                                            <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                                                <Text style={styles.placePrice}>${restaurant.price || 0}</Text>
                                                                 <Text style={styles.placeCategory} numberOfLines={1}>⭐ {restaurant.rating || "N/A"}</Text>
                                                             </View>
-                                                            <Text style={styles.placePrice}>${restaurant.price || 0}</Text>
                                                         </View>
 
                                                         {restaurantIndex < restaurants.length - 1 && (
@@ -801,7 +857,7 @@ const PlanTripDetails = ({ navigation, route }) => {
             {/* Bottom Sheet */}
             <RBSheet
                 ref={refRBSheet}
-                height={hp(25)}
+                height={hp(28)}
                 openDuration={250}
                 customStyles={{
                     container: {
@@ -832,7 +888,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                     </TouchableOpacity>
 
                     {/* Option: Delete from the List */}
-                    <TouchableOpacity style={styles.bottomSheetButton} onPress={handleDeleteItem}>
+                    <TouchableOpacity style={[styles.bottomSheetButton, { borderBottomWidth: 0 }]} onPress={handleDeleteItem}>
                         <Ionicons name="trash-outline" size={wp(6)} color={COLORS.red} />
                         <Text style={[styles.bottomSheetText, { color: COLORS.red }]}>Delete from the List</Text>
                     </TouchableOpacity>
@@ -985,7 +1041,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.white,
         marginTop: -hp(8),
         borderRadius: wp(4),
-        marginHorizontal: wp(5),
+        marginHorizontal: wp(4),
         borderColor: COLORS.gray,
         borderWidth: 0.7,
         marginBottom: hp(1)
@@ -1040,7 +1096,7 @@ const styles = StyleSheet.create({
     },
     dayContainer: {
         backgroundColor: COLORS.white,
-        marginHorizontal: wp(5),
+        marginHorizontal: wp(4),
         marginVertical: hp(1),
         borderRadius: wp(3),
         borderColor: COLORS.gray,
@@ -1070,7 +1126,7 @@ const styles = StyleSheet.create({
     },
     optionText: {
         color: COLORS.darkgray,
-        fontFamily: fontFamily.FONTS.Medium,
+        fontFamily: fontFamily.FONTS.bold,
         fontSize: hp(1.9)
     },
     placeContainer: {
@@ -1114,6 +1170,11 @@ const styles = StyleSheet.create({
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.darkgray,
         paddingRight: wp(2.2),
+    },
+    placeAddress: {
+        fontFamily: fontFamily.FONTS.Medium,
+        color: COLORS.Midgray,
+        fontSize: hp(1.8)
     },
     placeCategory: {
         fontSize: hp(1.7),
