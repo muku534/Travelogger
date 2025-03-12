@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState, version } from 'react';
 import { View, Text, ImageBackground, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, StatusBar, Animated, Image, ScrollView, Linking, Modal, TouchableWithoutFeedback, KeyboardAvoidingView, Platform, Keyboard, TextInput, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Octicons from 'react-native-vector-icons/Octicons';
 import Entypo from 'react-native-vector-icons/Entypo';
-import { COLORS, fontFamily, SVGS } from '../../../constants';
+import { COLORS, fontFamily, Images, SVGS } from '../../../constants';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import MapView, { Marker } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
 import Toast from "react-native-toast-message";
-import { createItineraries, updateItineraryById } from '../../services/planTripService';
+import { createItineraries, ShareItinerary, updateItineraryById } from '../../services/planTripService';
 import LinearGradient from 'react-native-linear-gradient';
 import logger from '../../utils/logger';
 import RBSheet from 'react-native-raw-bottom-sheet';
@@ -16,7 +17,7 @@ import { DELETE_TRIP_DAY_ITEM } from '../../redux/Actions';
 const AiPlanTripDetails = ({ navigation }) => {
     const refRBSheet = useRef(null); // Bottom Sheet Ref
     const dispatch = useDispatch();
-    const { itineraryId, destination, startDate, endDate, coordinates, tripDays } = useSelector(state => state.tripDetails);
+    const { itineraryId, destination, startDate, endDate, tripImg, coordinates, tripDays } = useSelector(state => state.tripDetails);
     const [expanded, setExpanded] = useState(null);
     const [activeTab, setActiveTab] = useState('List');
     const sliderAnim = useRef(new Animated.Value(wp(12))).current; // Start at 'List' position
@@ -27,6 +28,32 @@ const AiPlanTripDetails = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [emailError, setEmailError] = useState("");
     const [modalVisible, setModalVisible] = useState(false);
+
+    const calculateTotalBudget = () => {
+        if (!tripDays || tripDays.length === 0) return 0;
+
+        return tripDays.reduce((totalBudget, day) => {
+            let dayBudget = 0;
+
+            // Extract all items (hotels, activities, restaurants)
+            const allItems = [
+                ...(day.items || []),
+                ...(day.sections?.hotels || []),
+                ...(day.sections?.activities || []),
+                ...(day.sections?.restaurants || [])
+            ];
+
+            // Sum up all item prices
+            allItems.forEach(item => {
+                const price = item.price ? parseFloat(item.price.toString().replace('$', '')) : 0;
+                dayBudget += price;
+            });
+
+            return totalBudget + dayBudget;
+        }, 0).toFixed(2); // ✅ Convert to 2 decimal places
+    };
+
+    const totalBudget = calculateTotalBudget(); // ✅ Get the final total
 
     const handleShareItinerary = async () => {
         // Email validation
@@ -207,6 +234,18 @@ const AiPlanTripDetails = ({ navigation }) => {
         setDistances(newDistances);
     };
 
+    const handleAddItem = (type, dayIndex) => {
+        let fallbackCoordinates = coordinates; // Default to main coordinates
+
+        // If main coordinates are not available, use the first trip day's first item's coordinates
+        if (!coordinates?.length && tripDays?.length > 0 && tripDays[0].items?.length > 0) {
+            fallbackCoordinates = tripDays[0].items[0]?.location?.coordinates;
+        }
+
+        navigation.navigate("SearchScreen", { type, dayIndex, isSearchOnly: false, coordinates: fallbackCoordinates });
+    };
+
+
     const formatDate = (inputDate) => {
         const date = new Date(inputDate);
         const year = date.getFullYear();
@@ -218,6 +257,8 @@ const AiPlanTripDetails = ({ navigation }) => {
     const handleSaveItinerary = async () => {
         try {
             setLoading(true);
+
+
             if (itineraryId) {
                 const itineraryData = {
                     itinerary: {
@@ -265,7 +306,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                                         duration: hotel.duration || null,
                                         price: hotel.price || 0,
                                         priceLevel: hotel.priceLevel || 1,
-                                        rating: hotel.rating || 0,
+                                        rating: hotel.rating && hotel.rating !== "N/A" ? hotel.rating : 0,
                                         userRatingsTotal: hotel.userRatingsTotal || 0,
                                         photos: hotel.photos && Array.isArray(hotel.photos)
                                             ? hotel.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
@@ -315,7 +356,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                                         duration: activity.duration || null,
                                         price: activity.price || 0,
                                         priceLevel: activity.priceLevel || 1,
-                                        rating: activity.rating || 0,
+                                        rating: activity.rating && activity.rating !== "N/A" ? activity.rating : 0,
                                         userRatingsTotal: activity.userRatingsTotal || 0,
                                         photos: activity.photos && Array.isArray(activity.photos)
                                             ? activity.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
@@ -364,7 +405,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                                         duration: restaurant.duration || null,
                                         price: restaurant.price || 0,
                                         priceLevel: restaurant.priceLevel || 1,
-                                        rating: restaurant.rating || 0,
+                                        rating: restaurant.rating && restaurant.rating !== "N/A" ? restaurant.rating : 0,
                                         userRatingsTotal: restaurant.userRatingsTotal || 0,
                                         photos: restaurant.photos && Array.isArray(restaurant.photos)
                                             ? restaurant.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
@@ -396,6 +437,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                         }))
                     },
                 };
+                console.log("id availble itineraryData", itineraryData)
 
                 await updateItineraryById(itineraryId, itineraryData);
                 Toast.show({
@@ -403,6 +445,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                     text1: "Success",
                     text2: "Itinerary updated successfully!",
                 });
+
             } else {
                 const itineraryData = {
                     itinerary: {
@@ -413,7 +456,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                         generatedBy: "AI",
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
-                        tripImg: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80",
+                        tripImg: tripImg,
                         tripDetails: {
                             destination: { name: destination, coordinates: coordinates },
                             startDate: startDate,
@@ -506,7 +549,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                                     contact: {
                                         phone: activity.contact?.phone || activity.phone || "",
                                         email: activity.contact?.email || activity.email || "",
-                                        website: activity.contact.website || activity.website || "",
+                                        website: activity.contact?.website || activity.website || "",
                                         googleMapsUrl: activity.contact?.googleMapsUrl || activity.googleMapsUrl || "",
                                     },
                                     operatingHours: {
@@ -577,6 +620,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                         })),
                     },
                 };
+                console.log("if id not availble itineraryData", itineraryData)
 
                 await createItineraries(itineraryData);
                 Toast.show({
@@ -673,13 +717,26 @@ const AiPlanTripDetails = ({ navigation }) => {
         });
     };
 
+    const getMarkerImage = (type) => {
+        switch (type) {
+            case "hotel":
+                return Images.hotelMarker;
+            case "activity":
+                return Images.activityMarker;
+            case "restaurant":
+                return Images.restaurantMarker;
+            default:
+                return Images.hotelMarker; // A fallback icon
+        }
+    };
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
             <StatusBar translucent backgroundColor="transparent" barStyle={activeTab === 'List' ? 'light-content' : 'dark-content'} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(2) }} >
                 <View style={styles.container}>
                     {activeTab === 'List' ? (
-                        <ImageBackground source={{ uri: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80" }} style={styles.headerImage}>
+                        <ImageBackground source={{ uri: tripImg }} style={styles.headerImage}>
                             <View style={styles.overlay} />
                         </ImageBackground>
                     ) : (
@@ -687,23 +744,58 @@ const AiPlanTripDetails = ({ navigation }) => {
                             provider="google"
                             style={{ width: wp(100), height: hp(30) }}
                             initialRegion={{
-                                latitude: coordinates?.[0] || 22.3193, // Default to Hong Kong
-                                longitude: coordinates?.[1] || 114.1694,
+                                latitude: coordinates?.[0] ?? tripDays?.[0]?.items?.[0]?.location?.coordinates?.[0] ?? 22.3193,
+                                longitude: coordinates?.[1] ?? tripDays?.[0]?.items?.[0]?.location?.coordinates?.[1] ?? 114.1694,
                                 latitudeDelta: 0.1,
                                 longitudeDelta: 0.1,
                             }}
-                            onMapReady={() => logger.error("Map Loaded")}
+                            onMapReady={() => logger.info("Map Loaded")}
                             onError={(error) => logger.error("Map Error: ", error)}
                         >
-                            <Marker
-                                coordinate={{
-                                    latitude: coordinates?.[0] || 22.3193,
-                                    longitude: coordinates?.[1] || 114.1694,
-                                }}
-                                title={destination}
-                                description="Main Destination"
-                            />
+
+                            {/* ✅ Marker for main trip destination (if available) */}
+                            {coordinates?.length === 2 && (
+                                <Marker
+                                    coordinate={{
+                                        latitude: coordinates[0],
+                                        longitude: coordinates[1],
+                                    }}
+                                    title="Trip Destination"
+                                    description="This is the main trip location."
+                                />
+                            )}
+
+                            {/* ✅ Display all itinerary items on the map */}
+                            {tripDays?.map((day, dayIndex) => {
+                                const places = [
+                                    ...(day.items || []),
+                                    ...(day.sections?.hotels || []),
+                                    ...(day.sections?.activities || []),
+                                    ...(day.sections?.restaurants || []),
+                                ];
+
+                                return places.map((place, index) => {
+                                    if (!place.location?.coordinates) return null;
+
+                                    return (
+                                        <Marker
+                                            key={`${dayIndex}-${index}`}
+                                            coordinate={{
+                                                latitude: place.location.coordinates[0],
+                                                longitude: place.location.coordinates[1],
+                                            }}
+                                            title={place.title || place.name}
+                                            description={place.description || "No description available"}
+                                        >
+                                            {/* ✅ Custom PNG Marker based on type */}
+                                            <Image source={getMarkerImage(place.type)} style={styles.customMarker} />
+                                        </Marker>
+                                    );
+                                });
+                            })}
+
                         </MapView>
+
 
                     )}
 
@@ -755,7 +847,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                                 <SVGS.AIBUDGET width={wp(5)} height={hp(4)} />
                                 <View style={{ paddingHorizontal: wp(1) }}>
                                     <Text style={styles.budgetText}>Total Budget</Text>
-                                    <Text style={styles.budgetAmount}>$0.0</Text>
+                                    <Text style={styles.budgetAmount}>${totalBudget}</Text>
                                 </View>
                             </View>
                             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: wp(3), marginLeft: 'auto' }}>
@@ -821,7 +913,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                                         <View style={styles.optionsContainer}>
 
                                             {/* Hotel Section */}
-                                            <OptionButton title="Add Hotel" Icon={SVGS.AIHOTEL} onPress={() => handleAddItem('Hotel', index)} />
+                                            <OptionButton title="Add Hotel" Icon={SVGS.AIHOTEL} onPress={() => handleAddItem('hotel', index)} />
                                             {hotels.map((hotel, hotelIndex) => (
                                                 <TouchableOpacity key={hotelIndex} onPress={() => handleItemPress(hotel, index)} activeOpacity={0.7}>
                                                     <View >
@@ -838,9 +930,15 @@ const AiPlanTripDetails = ({ navigation }) => {
                                                             </View>
                                                             <View style={styles.placeDetails}>
                                                                 <Text style={styles.placeTitle} numberOfLines={1}>{hotel.title || hotel.name || "Unnamed Hotel"}</Text>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'flex-start', width: wp(49) }}>
+                                                                    <Ionicons name="location-outline" size={hp(2)} style={{ paddingRight: wp(1) }} color={COLORS.Midgray} />
+                                                                    <Text style={styles.placeAddress} numberOfLines={2}>{hotel.location?.address || hotel.address || "Unnamed Hotel"}</Text>
+                                                                </View>
+                                                            </View>
+                                                            <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                                                <Text style={styles.placePrice}>${hotel.price || 0}</Text>
                                                                 <Text style={styles.placeCategory} numberOfLines={1}>⭐ {hotel.rating || "N/A"}</Text>
                                                             </View>
-                                                            <Text style={styles.placePrice}>${hotel.price || 0}</Text>
                                                         </View>
 
                                                         {hotelIndex < hotels.length - 1 && (
@@ -869,7 +967,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                                             ))}
 
                                             {/* Activity Section */}
-                                            <OptionButton title="Add Activities" Icon={SVGS.ACTIVITY} isImage={true} onPress={() => handleAddItem('Activity', index)} />
+                                            <OptionButton title="Add Activities" Icon={SVGS.ACTIVITY} isImage={true} onPress={() => handleAddItem('activity', index)} />
                                             {activities.map((activity, activityIndex) => (
                                                 <TouchableOpacity key={activityIndex} onPress={() => handleItemPress(activity, index)} activeOpacity={0.7}>
                                                     <View >
@@ -887,9 +985,15 @@ const AiPlanTripDetails = ({ navigation }) => {
                                                             </View>
                                                             <View style={styles.placeDetails}>
                                                                 <Text style={styles.placeTitle} numberOfLines={1}>{activity.title || activity.name || "Unnamed Activity"}</Text>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'flex-start', width: wp(49) }}>
+                                                                    <Ionicons name="location-outline" size={hp(2)} style={{ paddingRight: wp(1) }} color={COLORS.Midgray} />
+                                                                    <Text style={styles.placeAddress} numberOfLines={2}>{activity.location?.address || activity.address || "Unnamed Hotel"}</Text>
+                                                                </View>
+                                                            </View>
+                                                            <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                                                <Text style={styles.placePrice}>${activity.price || 0}</Text>
                                                                 <Text style={styles.placeCategory} numberOfLines={1}>⭐ {activity.rating || "N/A"}</Text>
                                                             </View>
-                                                            <Text style={styles.placePrice}>${activity.price || 0}</Text>
                                                         </View>
 
                                                         {activityIndex < activities.length - 1 && (
@@ -917,7 +1021,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                                             ))}
 
                                             {/* Restaurant Section */}
-                                            <OptionButton title="Add Restaurants" Icon={SVGS.RESTAURANTS} onPress={() => handleAddItem('Restaurant', index)} />
+                                            <OptionButton title="Add Restaurants" Icon={SVGS.RESTAURANTS} onPress={() => handleAddItem('restaurant', index)} />
                                             {restaurants.map((restaurant, restaurantIndex) => (
                                                 <TouchableOpacity key={restaurantIndex} onPress={() => handleItemPress(restaurant, index)} activeOpacity={0.7}>
                                                     <View>
@@ -935,9 +1039,15 @@ const AiPlanTripDetails = ({ navigation }) => {
                                                             </View>
                                                             <View style={styles.placeDetails}>
                                                                 <Text style={styles.placeTitle} numberOfLines={1}>{restaurant.title || restaurant.name || "Unnamed Restaurant"}</Text>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'flex-start', width: wp(49) }}>
+                                                                    <Ionicons name="location-outline" size={hp(2)} style={{ paddingRight: wp(1) }} color={COLORS.Midgray} />
+                                                                    <Text style={styles.placeAddress} numberOfLines={2}>{restaurant.location?.address || restaurant.address || "Unnamed Hotel"}</Text>
+                                                                </View>
+                                                            </View>
+                                                            <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                                                <Text style={styles.placePrice}>${restaurant.price || 0}</Text>
                                                                 <Text style={styles.placeCategory} numberOfLines={1}>⭐ {restaurant.rating || "N/A"}</Text>
                                                             </View>
-                                                            <Text style={styles.placePrice}>${restaurant.price || 0}</Text>
                                                         </View>
 
                                                         {restaurantIndex < restaurants.length - 1 && (
@@ -976,7 +1086,7 @@ const AiPlanTripDetails = ({ navigation }) => {
             {/* Bottom Sheet */}
             <RBSheet
                 ref={refRBSheet}
-                height={hp(25)}
+                height={hp(28)}
                 openDuration={250}
                 customStyles={{
                     container: {
@@ -1001,13 +1111,13 @@ const AiPlanTripDetails = ({ navigation }) => {
                     </TouchableOpacity>
 
                     {/* Option: Website */}
-                    <TouchableOpacity style={[styles.bottomSheetButton, { borderBottomWidth: 0 }]} onPress={() => handlePlaceAction(selectedItem, "website")}>
+                    <TouchableOpacity style={[styles.bottomSheetButton,]} onPress={() => handlePlaceAction(selectedItem, "website")}>
                         <Ionicons name="globe-outline" size={wp(6)} color={COLORS.darkgray} />
                         <Text style={styles.bottomSheetText}>Website</Text>
                     </TouchableOpacity>
 
                     {/* Option: Delete from the List */}
-                    <TouchableOpacity style={styles.bottomSheetButton} onPress={handleDeleteItem}>
+                    <TouchableOpacity style={[styles.bottomSheetButton, { borderBottomWidth: 0 }]} onPress={handleDeleteItem}>
                         <Ionicons name="trash-outline" size={wp(6)} color={COLORS.red} />
                         <Text style={[styles.bottomSheetText, { color: COLORS.red }]}>Delete from the List</Text>
                     </TouchableOpacity>
@@ -1097,6 +1207,9 @@ const OptionButton = ({ title, Icon, isImage, onPress }) => (
             )}
             <Text style={styles.optionText}>{title}</Text>
         </View>
+        <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
+            <Octicons name='diff-added' size={hp(2.9)} color={COLORS.RoyalBlue} />
+        </TouchableOpacity>
     </View>
 );
 
@@ -1162,7 +1275,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.white,
         marginTop: -hp(8),
         borderRadius: wp(4),
-        marginHorizontal: wp(5),
+        marginHorizontal: wp(4),
         borderColor: COLORS.gray,
         borderWidth: 0.7,
         marginBottom: hp(1)
@@ -1217,7 +1330,7 @@ const styles = StyleSheet.create({
     },
     dayContainer: {
         backgroundColor: COLORS.white,
-        marginHorizontal: wp(5),
+        marginHorizontal: wp(4),
         marginVertical: hp(1),
         borderRadius: wp(3),
         borderColor: COLORS.gray,
@@ -1246,8 +1359,8 @@ const styles = StyleSheet.create({
     },
     optionText: {
         color: COLORS.darkgray,
-        fontFamily: fontFamily.FONTS.Medium,
-        fontSize: hp(1.9)
+        fontFamily: fontFamily.FONTS.bold,
+        fontSize: hp(2)
     },
     placeContainer: {
         flexDirection: 'row',
@@ -1292,10 +1405,15 @@ const styles = StyleSheet.create({
         paddingRight: wp(2.2),
 
     },
-    placeCategory: {
-        fontSize: hp(1.7),
-        color: COLORS.darkgray,
+    placeAddress: {
         fontFamily: fontFamily.FONTS.Medium,
+        color: COLORS.Midgray,
+        fontSize: hp(1.8)
+    },
+    placeCategory: {
+        fontSize: hp(1.6),
+        color: COLORS.darkgray,
+        fontFamily: fontFamily.FONTS.bold,
     },
     placePrice: {
         fontSize: hp(2),
