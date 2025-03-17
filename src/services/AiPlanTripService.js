@@ -5,6 +5,6 @@ export const createAIItineraries = async (itineraryData) => {
         const response = await api.post('/ai-itiernary/generate', itineraryData);
         return response.data; // Return updated profile data
     } catch (error) {
-        throw error.response?.data || { message: "Something went wrong" };
+        throw error.response?.data || error;
     }
 };

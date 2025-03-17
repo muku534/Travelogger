@@ -23,9 +23,12 @@ const AIIternary = ({ navigation }) => {
             const response = await getItineraries(userData.userId);
 
             if (response) {
+                const sortedItineraries = response.sort((a, b) =>
+                    new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
+                );
                 dispatch({
                     type: FETCH_ITINERARIES,
-                    payload: { Itineraries: response },
+                    payload: { Itineraries: sortedItineraries },
                 });
             } else {
                 logger.error("somthing went wrong to fetch the Itinerary")
@@ -63,7 +66,10 @@ const AIIternary = ({ navigation }) => {
                         </View>
                     ) : (
                         <FlatList
-                            data={Itinerary.filter(itinerary => itinerary.generatedBy === "AI")}
+                            data={[...Itinerary]
+                                .filter(itinerary => itinerary.generatedBy === "AI")
+                                .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+                            }
                             keyExtractor={(item, index) => (item && item.id ? item.id.toString() : index.toString())}
                             renderItem={({ item }) => (
                                 <ItineraryCard
@@ -97,6 +103,7 @@ const AIIternary = ({ navigation }) => {
                                             payload: {
                                                 tripDetails: {
                                                     itineraryId: item.id,
+                                                    tripImg: item.tripImg,
                                                     destination: item.tripDetails?.destination.name,
                                                     startDate: item.tripDetails?.startDate,
                                                     endDate: item.tripDetails?.endDate,

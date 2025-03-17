@@ -9,6 +9,7 @@ import Button from '../../components/Button';
 import logger from '../../utils/logger';
 import Toast from 'react-native-toast-message';
 import CommonHeader from '../../components/CommonHeader'
+import { updatePassword } from '../../services/authService';
 
 const ChangePassword = ({ navigation }) => {
     const [form, setForm] = useState({
@@ -66,7 +67,8 @@ const ChangePassword = ({ navigation }) => {
                 text2: 'You can now log in with your new password.',
             });
 
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            // navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            navigation.goBack()
 
         } catch (error) {
             Toast.show({

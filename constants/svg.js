@@ -27,7 +27,6 @@ import more from '../assets/icons/more.svg';
 import HomeIcon from '../assets/icons/Home.svg';
 import HomeActiveIcon from '../assets/icons/Home_Active.svg';
 import ProfilIcon from '../assets/icons/Profile_icon_deactive.svg';
-import ProfileActiveIcon from '../assets/icons/Profile.svg';
 import AITripIcon from '../assets/icons/AiTrip.svg';
 import AIIcon from '../assets/icons/AI_icon_deactive.svg';
 import AIActiveIcon from '../assets/icons/AI_icon.svg';
@@ -61,13 +60,16 @@ import AiHotel from '../assets/icons/hotelai_icon.svg';
 import ShareStep from '../assets/icons/location.svg';
 import Suit from '../assets/icons/accomodations_icon.svg';
 import Magic from '../assets/icons/photos_icon.svg';
-
 import ShareICON from "../assets/icons/sharebg_icon.svg";
 import SaveICON from "../assets/icons/save.svg";
 import BudgetICON from "../assets/icons/budget.svg";
 import CalendarICON from "../assets/icons/calendar.svg";
 import AddICON from '../assets/icons/Add_option.svg';
 import ActivityICON from '../assets/icons/Activitiy_icon.png';
+import InstagramICON from '../assets/icons/instagram.svg';
+import linkedinICON from '../assets/icons/linkedin.svg';
+import TwitterICON from '../assets/icons/twitter.svg';
+import WorldICON from '../assets/icons/world.svg';
 
 const SVGS = {
     CONTACT: Contact,
@@ -99,7 +101,6 @@ const SVGS = {
     HOMEICON: HomeIcon,
     HOMEACTIVEICON: HomeActiveIcon,
     PROFILEICON: ProfilIcon,
-    PROFILEACTIVEICON: ProfileActiveIcon,
     AITRIPEICON: AITripIcon,
     AIICON: AIIcon,
     AIACTIVEICON: AIActiveIcon,
@@ -138,8 +139,11 @@ const SVGS = {
     BUDGETICON: BudgetICON,
     CALENDARICON: CalendarICON,
     ADDICON: AddICON,
-    ACTIVITYICON: ActivityICON
-    
+    ACTIVITYICON: ActivityICON,
+    INSTAGRAMICON: InstagramICON,
+    LINKEDINICON: linkedinICON,
+    TWITTERICON: TwitterICON,
+    WORLDICON: WorldICON
 };
 
 export default SVGS;

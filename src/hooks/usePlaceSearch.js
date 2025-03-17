@@ -8,6 +8,7 @@ const usePlaceSearch = () => {
     const [suggestions, setSuggestions] = useState([]);
     const [selectedLocation, setSelectedLocation] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [placeImages, setPlaceImages] = useState([]);
 
     // Fetch Place Suggestions from Google Places API
     const fetchPlaces = async (input) => {
@@ -64,12 +65,21 @@ const usePlaceSearch = () => {
                     params: {
                         place_id: place.place_id,
                         key: GOOGLE_API_KEY,
+                        fields: "geometry,photos",
                     },
                 }
             );
 
             if (response.data.status === "OK") {
                 const { lat, lng } = response.data.result.geometry.location;
+                // Convert photo references to URLs
+                const images = response.data.result.photos
+                    ? response.data.result.photos.map(photo =>
+                        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${GOOGLE_API_KEY}`
+                    )
+                    : []; // If no images, return an empty array
+
+                setPlaceImages(images)
                 setSelectedLocation([lat, lng]);
             }
         } catch (error) {
@@ -82,6 +92,7 @@ const usePlaceSearch = () => {
         suggestions,
         showSuggestions,
         selectedLocation,
+        placeImages,
         handleDestinationChange,
         handlePlaceSelect,
     };

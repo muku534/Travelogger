@@ -42,11 +42,7 @@ const rootReducer = (state = initialState, action) => {
                 userData: { ...state.userData, ...action.payload.updatedData },
             };
         case LOGOUT:
-            return {
-                ...state,
-                userData: null,
-                Itineraries: [],
-            };
+            return initialState;
 
         // 🔹 Temporary Itinerary Handling
         case SET_TRIP_DETAILS:
@@ -60,17 +56,50 @@ const rootReducer = (state = initialState, action) => {
 
 
         case ADD_TRIP_DAY_ITEM:
+            console.log("🟢 ADD_TRIP_DAY_ITEM Action Dispatched");
+            console.log("Incoming Payload:", action.payload);
+
             return {
                 ...state,
                 tripDetails: {
                     ...state.tripDetails,
-                    tripDays: state.tripDetails.tripDays.map((day, index) =>
-                        index === action.payload.dayIndex
-                            ? { ...day, items: [...day.items, action.payload.item] } // ✅ Properly update items immutably
-                            : day
-                    ),
+                    tripDays: state.tripDetails.tripDays.map((day, index) => {
+                        if (index === action.payload.dayIndex) {
+                            console.log("🔹 Existing Day Before Update:", day);
+
+                            const updatedDay = { ...day };
+
+                            if (updatedDay.sections) {
+                                // ✅ Ensure correct plural section key is used
+                                const sectionTypeMap = {
+                                    hotel: "hotels",
+                                    activity: "activities",
+                                    restaurant: "restaurants"
+                                };
+
+                                const sectionType = sectionTypeMap[action.payload.item.type] || action.payload.item.type;
+
+                                updatedDay.sections = {
+                                    ...updatedDay.sections,
+                                    [sectionType]: [
+                                        ...(updatedDay.sections[sectionType] || []),
+                                        action.payload.item
+                                    ],
+                                };
+                                console.log("✅ Updated Day (Sections Mode):", updatedDay);
+                            } else {
+                                // Otherwise, use `items` (for saved itineraries)
+                                updatedDay.items = [...(updatedDay.items || []), action.payload.item];
+                                console.log("✅ Updated Day (Items Mode):", updatedDay);
+                            }
+
+                            return updatedDay;
+                        }
+                        return day;
+                    }),
                 },
             };
+
 
         case DELETE_TRIP_DAY_ITEM:
             return {

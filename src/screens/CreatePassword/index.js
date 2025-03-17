@@ -1,4 +1,4 @@
-import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, TextInput } from 'react-native';
+import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, ScrollView, Keyboard } from 'react-native';
 import React, { useState } from 'react';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import { COLORS, fontFamily } from "../../../constants";
@@ -61,8 +61,6 @@ const CreatePassword = ({ route, navigation }) => {
 
             const response = await updatePassword(requestedData);
 
-            console.log("Update password API response", response);
-
             // Show success message
             Toast.show({
                 type: 'success',
@@ -84,71 +82,78 @@ const CreatePassword = ({ route, navigation }) => {
         }
     };
 
+    const dismissKeyboard = () => {
+        Keyboard.dismiss();
+    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar backgroundColor={COLORS.white} barStyle="dark-content" />
-            <View style={styles.container}>
-                {/* Header */}
-                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={wp(6)} color={COLORS.darkgray} />
-                </TouchableOpacity>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+                <TouchableWithoutFeedback onPress={dismissKeyboard}>
+                    <ScrollView contentContainerStyle={{ flex: 1 }}>
+                        <View style={styles.container}>
+                            {/* Header */}
+                            <TouchableOpacity style={styles.backButton} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Login' }] })}>
+                                <Ionicons name="arrow-back" size={wp(6)} color={COLORS.darkgray} />
+                            </TouchableOpacity>
 
-                <View style={{ flex: 1, alignItems: 'center' }}>
-                    {/* Forgot Password Icon */}
-                    <View style={styles.svgContainer}>
-                        <CreatePasswordImage width={hp(35)} height={hp(25)} />
-                    </View>
+                            <View style={{ flex: 1, alignItems: 'center' }}>
+                                {/* Forgot Password Icon */}
+                                <View style={styles.svgContainer}>
+                                    <CreatePasswordImage width={hp(35)} height={hp(25)} />
+                                </View>
 
-                    {/* Forgot Password Title */}
-                    <Text style={styles.title}>Create Password</Text>
+                                {/* Forgot Password Title */}
+                                <Text style={styles.title}>Create Password</Text>
 
-                    {/* Instruction Text */}
-                    <Text style={styles.instruction}>
-                        Create a Strong Password that you will never forget again
-                    </Text>
+                                {/* Instruction Text */}
+                                <Text style={styles.instruction}>
+                                    Create a Strong Password that you will never forget again
+                                </Text>
 
-                    {/* Input Field */}
-                    {/* Password Input */}
-                    <InputField
-                        label="Password"
-                        icon={<MaterialCommunityIcons name="lock-outline" size={hp(3)} color={COLORS.darkgray1} />}
-                        placeholder="Password"
-                        value={form.password}
-                        secureTextEntry={isPasswordShown}
-                        onChangeText={(text) => handleChange('password', text)}
-                        editable={!loading}
-                        toggleSecure={() => setIsPasswordShown(!isPasswordShown)}
-                        isSecure={isPasswordShown}
-                    />
+                                {/* Input Field */}
+                                {/* Password Input */}
+                                <InputField
+                                    label="Password"
+                                    icon={<MaterialCommunityIcons name="lock-outline" size={hp(3)} color={COLORS.darkgray1} />}
+                                    placeholder="Password"
+                                    value={form.password}
+                                    secureTextEntry={isPasswordShown}
+                                    onChangeText={(text) => handleChange('password', text)}
+                                    editable={!loading}
+                                    toggleSecure={() => setIsPasswordShown(!isPasswordShown)}
+                                    isSecure={isPasswordShown}
+                                />
 
-                    {/* Confirm Password Input */}
-                    <InputField
-                        label="Confirm Password"
-                        icon={<MaterialCommunityIcons name="lock-outline" size={hp(3)} color={COLORS.darkgray1} />}
-                        placeholder="Re-Enter Password"
-                        value={form.confirmPassword}
-                        secureTextEntry={isConfirmPasswordShown}
-                        onChangeText={(text) => handleChange('confirmPassword', text)}
-                        editable={!loading}
-                        toggleSecure={() => setIsConfirmPasswordShown(!isConfirmPasswordShown)}
-                        isSecure={isConfirmPasswordShown}
-                    />
+                                {/* Confirm Password Input */}
+                                <InputField
+                                    label="Confirm Password"
+                                    icon={<MaterialCommunityIcons name="lock-outline" size={hp(3)} color={COLORS.darkgray1} />}
+                                    placeholder="Re-Enter Password"
+                                    value={form.confirmPassword}
+                                    secureTextEntry={isConfirmPasswordShown}
+                                    onChangeText={(text) => handleChange('confirmPassword', text)}
+                                    editable={!loading}
+                                    toggleSecure={() => setIsConfirmPasswordShown(!isConfirmPasswordShown)}
+                                    isSecure={isConfirmPasswordShown}
+                                />
 
-                    {/* Submit Button */}
-                    <View style={{ marginVertical: hp(2) }}>
-                        <Button
-                            title={loading ? "Updating..." : "Confirm Password"}
-                            color={COLORS.red}
-                            onPress={handleSubmit}
-                            style={styles.button}
-                            disabled={loading}
-                        />
-                    </View>
-                </View>
-            </View>
-
-            <Toast />
+                                {/* Submit Button */}
+                                <View style={{ marginVertical: hp(2) }}>
+                                    <Button
+                                        title={loading ? "Updating..." : "Confirm Password"}
+                                        color={COLORS.red}
+                                        onPress={handleSubmit}
+                                        style={styles.button}
+                                        disabled={loading}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                    </ScrollView>
+                </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };

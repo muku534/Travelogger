@@ -1,4 +1,3 @@
-import { GOOGLE_CLOUD_API } from "@env";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { googleLogin } from './authService';
 import { storeDataInAsyncStorage } from '../utils/Helper';
@@ -8,9 +7,10 @@ import Toast from 'react-native-toast-message';
 
 export const signInWithGoogle = async (navigation, dispatch) => {
     try {
+
         // Configure Google Sign-In
         GoogleSignin.configure({
-            webClientId: GOOGLE_CLOUD_API,
+            webClientId: '181504532584-8o1jdaa0cn6ves6tb1oj1p74u6hc85kc.apps.googleusercontent.com',
             offlineAccess: true,
             prompt: 'select_account', // Always prompt to select an account
             scopes: ['profile', 'email'],
@@ -52,7 +52,7 @@ export const signInWithGoogle = async (navigation, dispatch) => {
                 text1: 'User already exists or Unauthorized',
                 text2: 'Redirecting to Login...'
             });
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            navigation.navigate("Login")
         } else {
             Toast.show({
                 type: 'error',

@@ -13,6 +13,7 @@ import { storeDataInAsyncStorage } from '../../utils/Helper';
 import { useDispatch } from 'react-redux';
 import { SIGNUP_SUCCESS } from '../../redux/Actions';
 import Toast from 'react-native-toast-message';
+import logger from '../../utils/logger';
 
 const avatars = [
     "https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Felix&backgroundColor=b6e3f4",
@@ -67,7 +68,6 @@ const SignUp = ({ navigation }) => {
                 name, email, password, avatarImgUrl: selectedAvatar, createdBy: "Travelogger"
             };
             const response = await signUp(userData);
-            console.log("api response:", response)
 
             await storeDataInAsyncStorage("userData", response)
 
@@ -85,12 +85,23 @@ const SignUp = ({ navigation }) => {
             navigation.reset({ index: 0, routes: [{ name: 'TabStack' }] });
         } catch (error) {
             logger.error('Signup Error:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Signup Failed',
-                text2: error.message || 'Something went wrong.',
-                position: 'top'
-            });
+            if (error.message.includes('users_name_key')) {
+                // Show custom message for duplicate username
+                Toast.show({
+                    type: 'error',
+                    text1: 'Username Already Taken',
+                    text2: 'Please choose another username.',
+                    position: 'top'
+                });
+            } else {
+                // Show generic error
+                Toast.show({
+                    type: 'error',
+                    text1: 'Signup Failed',
+                    text2: error.message || 'Something went wrong.',
+                    position: 'top'
+                });
+            }
         } finally {
             setLoading(false)
         }
@@ -176,7 +187,7 @@ const SignUp = ({ navigation }) => {
                     {/* Bottom Login Navigation */}
                     <View style={styles.bottomContainer}>
                         <Text style={styles.loginText}>Already have an Account? </Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                        <TouchableOpacity onPress={() => navigation.replace("Login")}>
                             <Text style={styles.loginBold}>Login Now</Text>
                         </TouchableOpacity>
                     </View>

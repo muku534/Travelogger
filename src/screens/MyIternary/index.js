@@ -25,9 +25,12 @@ const MyItinerary = ({ navigation }) => {
             const response = await getItineraries(userData.userId);
 
             if (response) {
+                const sortedItineraries = response.sort((a, b) =>
+                    new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
+                );
                 dispatch({
                     type: FETCH_ITINERARIES,
-                    payload: { Itineraries: response },
+                    payload: { Itineraries: sortedItineraries },
                 });
             } else {
                 logger.error("somthing went wrong to fetch the Itinerary")
@@ -51,6 +54,7 @@ const MyItinerary = ({ navigation }) => {
         fetchItinerary();
     }, []);
 
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
             <StatusBar backgroundColor={COLORS.white} barStyle={'dark-content'} />
@@ -64,14 +68,17 @@ const MyItinerary = ({ navigation }) => {
                             <ActivityIndicator size="large" color={COLORS.red} />
                         </View>
                     ) : (
+
                         <FlatList
-                            data={Itinerary.filter(itinerary => itinerary.generatedBy === "manual")}
+                            data={[...Itinerary]
+                                .filter(itinerary => itinerary.generatedBy === "manual")
+                                .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+                            }
                             keyExtractor={(item, index) => (item && item.id ? item.id.toString() : index.toString())}
                             renderItem={({ item }) => (
                                 <ItineraryCard
                                     item={item}
                                     onPress={() => {
-                                        // console.log("tripDays", item)
                                         const tripDays = item.days.map((day, index) => ({
                                             id: `day-${index + 1}`,
                                             day: day.date,
@@ -94,13 +101,12 @@ const MyItinerary = ({ navigation }) => {
                                             ] // Extracted and merged activities, hotels, and restaurants
                                         }));
 
-                                        console.log("after tripDays", tripDays)
-
                                         dispatch({
                                             type: SET_TRIP_DETAILS,
                                             payload: {
                                                 tripDetails: {
                                                     itineraryId: item.id,
+                                                    tripImg: item.tripImg,
                                                     destination: item.tripDetails?.destination.name,
                                                     startDate: item.tripDetails?.startDate,
                                                     endDate: item.tripDetails?.endDate,

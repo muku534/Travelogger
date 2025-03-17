@@ -12,7 +12,7 @@ import Toast from "react-native-toast-message";
 
 const PlanTrip = ({ navigation }) => {
   const dispatch = useDispatch();
-  const { destination, suggestions, showSuggestions, selectedLocation, handleDestinationChange, handlePlaceSelect } = usePlaceSearch();
+  const { destination, suggestions, showSuggestions, selectedLocation, placeImages, handleDestinationChange, handlePlaceSelect } = usePlaceSearch();
 
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -86,7 +86,7 @@ const PlanTrip = ({ navigation }) => {
     // ✅ Generate tripDays dynamically before dispatching
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const numberOfDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    const numberOfDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
     const generatedDays = Array.from({ length: numberOfDays }, (_, i) => {
       const newDate = new Date(start);
@@ -100,14 +100,13 @@ const PlanTrip = ({ navigation }) => {
     });
 
     // ✅ Now tripDays is properly initialized before dispatching
-    console.log(" start date", startDate.toISOString().split("T")[0],)
-    console.log("end date", endDate.toISOString().split("T")[0],)
     dispatch({
       type: SET_TRIP_DETAILS,
       payload: {
         tripDetails: {
           id: null,
           destination: destination,
+          tripImg: placeImages[0],
           startDate: startDate.toISOString().split("T")[0],
           endDate: endDate.toISOString().split("T")[0],
           coordinates: selectedLocation,

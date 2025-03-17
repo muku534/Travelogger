@@ -18,11 +18,13 @@ const AiPlanTripDetails = ({ navigation }) => {
     const refRBSheet = useRef(null); // Bottom Sheet Ref
     const dispatch = useDispatch();
     const { itineraryId, destination, startDate, endDate, tripImg, coordinates, tripDays } = useSelector(state => state.tripDetails);
+    // console.log("new iteranry: ", itineraryId, destination, startDate, endDate, tripImg, coordinates, tripDays);
     const [expanded, setExpanded] = useState(null);
     const [activeTab, setActiveTab] = useState('List');
     const sliderAnim = useRef(new Animated.Value(wp(12))).current; // Start at 'List' position
     const userData = useSelector(state => state.userData);
     const [loading, setLoading] = useState(false);
+    const [saveLoading, setSaveLoading] = useState(false)
     const [distances, setDistances] = useState({});
     const [selectedItem, setSelectedItem] = useState(null);
     const [email, setEmail] = useState('');
@@ -60,44 +62,73 @@ const AiPlanTripDetails = ({ navigation }) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!email.trim()) {
             setEmailError("Email is required");
-            setTimeout(() => setEmailError(""), 800); // Hide error after 800ms
+            setTimeout(() => setEmailError(""), 800);
             return;
         }
         if (!emailRegex.test(email)) {
             setEmailError("Please enter a valid email address");
-            setTimeout(() => setEmailError(""), 800); // Hide error after 800ms
+            setTimeout(() => setEmailError(""), 800);
             return;
         }
 
-        setEmailError(""); // Clear error if valid
-        setLoading(true); // Show loading indicator
+        setEmailError(""); // Clear previous errors
+        setLoading(true);  // Show loading indicator
 
+        // Function to format dates
         const formatDate = (dateString) => {
+            if (!dateString) return "Unknown Date"; // Prevent errors from undefined dates
             const dateObj = new Date(dateString);
-            return dateObj.toISOString().split("T")[0]; // Convert to YYYY-MM-DD
+            return dateObj.toISOString().split("T")[0]; // Convert to YYYY-MM-DD format
         };
 
+        // console.log("Before sending:", tripDays);
+
+        // Ensure tripDays is valid
+        if (!tripDays || tripDays.length === 0) {
+            setLoading(false);
+            console.error("Error: No itinerary data found.");
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "No itinerary data available to share.",
+            });
+            return;
+        }
+
+        // Format itinerary data for API
         // Format itinerary data for API
         const itineraryData = {
             startDate: formatDate(startDate),
             endDate: formatDate(endDate),
-            recipientEmail: email, // Use entered email
+            destination: destination,
+            recipientEmail: email,
             dayPlans: tripDays
-                .map((day) => ({
-                    date: formatDate(day.day), // Convert to YYYY-MM-DD
-                    locations: day.items
-                        .filter((item) => item.title) // Ensure valid locations
-                        .map((item) => ({
-                            name: item.title || "Unknown Location",
+                .map((day) => {
+                    // Check if day.items exists, otherwise merge all categories from day.sections
+                    const locations = day.items
+                        ? day.items // Use day.items if available
+                        : Object.values(day.sections || {}) // Merge all sections into a single array
+                            .flat()
+                            .filter(item => item.title || item.name || item.location?.name || item.address);
+
+                    return {
+                        date: formatDate(day.day),
+                        locations: locations.map((item) => ({
+                            name: item.title || item.name || item.location?.name || item.address || "Unknown Location",
                             category: item.type || "activity",
-                            address: item.location?.address || item.description || "No Address",
+                            address: item.location?.address || item.description || item.address || "No Address",
                         })),
-                }))
-                .filter((day) => day.locations.length > 0), // Remove empty `locations`
+                    };
+                })
+                .filter((day) => day.locations.length > 0), // Keep only days with locations
         };
 
+        // console.log("Formatted itinerary data:", JSON.stringify(itineraryData, null, 2));
+        // console.log("Formatted itinerary data:", JSON.stringify(itineraryData, null, 2));
+
         try {
-            await ShareItinerary(itineraryData); // Call API function
+            const response = await ShareItinerary(itineraryData);
+            // console.log("API Response:", response);
 
             // Show success toast
             Toast.show({
@@ -109,17 +140,20 @@ const AiPlanTripDetails = ({ navigation }) => {
             toggelModel(); // Close modal after success
             setEmail(""); // Reset email input
         } catch (error) {
+            console.error("API Error:", error.response || error);
+
             // Show error toast
             Toast.show({
                 type: "error",
                 text1: "Error",
                 text2: error.message || "Failed to send itinerary.",
             });
-            logger.error("Email send error:", error);
         } finally {
-            setLoading(false); // Hide loading indicator
+            console.log("Resetting loading state...");
+            setLoading(false); // Ensure loading is hidden
         }
     };
+
 
     // Modal Toggle Function
     const toggelModel = () => {
@@ -157,10 +191,10 @@ const AiPlanTripDetails = ({ navigation }) => {
 
     // Estimate Duration Based on Distance
     const estimateDuration = (distance, category) => {
-        let speedMph = 50; // Default speed (Car travel)
+        let speedMph = 50; // Default: Car travel
 
-        if (category === "Walking") speedMph = 3;
-        if (category === "Biking") speedMph = 12;
+        if (category.toLowerCase() === "walking") speedMph = 3;
+        if (category.toLowerCase() === "biking") speedMph = 12;
 
         const durationHours = distance / speedMph;
         const durationMinutes = Math.round(durationHours * 60);
@@ -169,6 +203,30 @@ const AiPlanTripDetails = ({ navigation }) => {
             ? `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}m`
             : `${durationMinutes} min`;
     };
+
+
+    // Extract coordinates from different structures
+    const getCoordinates = (place) => {
+        if (!place) return null;
+
+        // ✅ Case 1: Coordinates in an array format
+        if (Array.isArray(place.coordinates) && place.coordinates.length === 2) {
+            return { latitude: place.coordinates[0], longitude: place.coordinates[1] };
+        }
+
+        // ✅ Case 2: Coordinates in an object format
+        if (place.coordinates && typeof place.coordinates === "object") {
+            return { latitude: place.coordinates.latitude, longitude: place.coordinates.longitude };
+        }
+
+        // ✅ Case 3: Coordinates inside a nested `location` object
+        if (place.location?.coordinates && Array.isArray(place.location.coordinates)) {
+            return { latitude: place.location.coordinates[0], longitude: place.location.coordinates[1] };
+        }
+
+        return null;
+    };
+
 
     useEffect(() => {
         calculateDistances();
@@ -181,9 +239,9 @@ const AiPlanTripDetails = ({ navigation }) => {
         for (let i = 0; i < tripDays.length; i++) {
             let places = [];
 
-            // Handle both `items` and `sections` structures
+            // ✅ Handle both `items` and `sections` structures
             if (tripDays[i]?.items && Array.isArray(tripDays[i].items)) {
-                places = tripDays[i].items;
+                places = tripDays[i].items; // ✅ Use `items` if available (saved itineraries)
             } else if (tripDays[i]?.sections) {
                 places = [
                     ...(tripDays[i].sections.hotels || []),
@@ -193,36 +251,22 @@ const AiPlanTripDetails = ({ navigation }) => {
             }
 
             if (!places || places.length < 2) continue;
-
+            console.log("places", places)
             for (let j = 0; j < places.length - 1; j++) {
-                // Extract coordinates, handling both data formats
-                const getCoordinates = (place) => {
-                    if (!place) return null;
-                    if (place.coordinates) {
-                        return { latitude: place.coordinates[0], longitude: place.coordinates[1] };
-                    } else if (place.location?.coordinates) {
-                        return { latitude: place.location.coordinates[0], longitude: place.location.coordinates[1] };
-                    }
-                    return null;
-                };
-
                 let origin = getCoordinates(places[j]);
                 let destination = getCoordinates(places[j + 1]);
-                let category = places[j]?.category || places[j]?.type;
+                let category = places[j]?.type || places[j]?.category || "Car"; // Default to car travel
 
-                // Ensure we use either `name` or `title`
                 const originName = places[j]?.name || places[j]?.title || "Unnamed Place";
                 const destinationName = places[j + 1]?.name || places[j + 1]?.title || "Unnamed Place";
 
                 if (!origin || !destination || !origin.latitude || !origin.longitude || !destination.latitude || !destination.longitude) {
-                    logger.error(`Missing coordinates for ${originName} or ${destinationName}`);
+                    console.log(`Missing coordinates for ${originName} or ${destinationName}`);
                     continue;
                 }
 
                 const distanceMiles = haversineDistance(origin, destination);
                 const durationText = estimateDuration(distanceMiles, category);
-
-                // logger.info(`Distance from ${originName} to ${destinationName}: ${distanceMiles} miles, ${durationText}`);
 
                 newDistances[`${originName}-${destinationName}`] = {
                     distance: `${distanceMiles} miles`,
@@ -245,7 +289,6 @@ const AiPlanTripDetails = ({ navigation }) => {
         navigation.navigate("SearchScreen", { type, dayIndex, isSearchOnly: false, coordinates: fallbackCoordinates });
     };
 
-
     const formatDate = (inputDate) => {
         const date = new Date(inputDate);
         const year = date.getFullYear();
@@ -256,9 +299,7 @@ const AiPlanTripDetails = ({ navigation }) => {
 
     const handleSaveItinerary = async () => {
         try {
-            setLoading(true);
-
-
+            setSaveLoading(true);
             if (itineraryId) {
                 const itineraryData = {
                     itinerary: {
@@ -269,7 +310,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                         generatedBy: "AI",
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
-                        tripImg: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80",
+                        tripImg: tripImg,
                         tripDetails: {
                             destination: { name: destination, coordinates: coordinates },
                             startDate: startDate,
@@ -309,12 +350,12 @@ const AiPlanTripDetails = ({ navigation }) => {
                                         rating: hotel.rating && hotel.rating !== "N/A" ? hotel.rating : 0,
                                         userRatingsTotal: hotel.userRatingsTotal || 0,
                                         photos: hotel.photos && Array.isArray(hotel.photos)
-                                            ? hotel.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                            ? hotel.photos.map(photo => ({ url: photo.url || null }))
                                             : hotel.image ? [{ url: hotel.image }] : [],
                                         contact: {
                                             phone: hotel.contact?.phone || hotel.phone || "",
                                             email: hotel.contact?.email || "",
-                                            website: hotel.contact?.website || hotel.website || "",
+                                            website: hotel.contact?.website === "N/A" ? "" : hotel.contact?.website || hotel.website === "N/A" ? "" : hotel.website || "",
                                             googleMapsUrl: hotel.contact?.googleMapsUrl || hotel.googleMapsUrl || "",
                                         },
                                         operatingHours: {
@@ -359,12 +400,13 @@ const AiPlanTripDetails = ({ navigation }) => {
                                         rating: activity.rating && activity.rating !== "N/A" ? activity.rating : 0,
                                         userRatingsTotal: activity.userRatingsTotal || 0,
                                         photos: activity.photos && Array.isArray(activity.photos)
-                                            ? activity.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                            ? activity.photos.map(photo => ({ url: photo.url || null }))
                                             : activity.image ? [{ url: activity.image }] : [],
                                         contact: {
                                             phone: activity.contact?.phone || activity.phone || "",
                                             email: activity.contact?.email || activity.email || "",
-                                            website: activity.contact.website || activity.website || "",
+                                            website: activity.contact?.website === "N/A" ? "" : activity.contact?.website ||
+                                                activity.website === "N/A" ? "" : activity.website || "",
                                             googleMapsUrl: activity.contact?.googleMapsUrl || activity.googleMapsUrl || "",
                                         },
                                         operatingHours: {
@@ -408,12 +450,13 @@ const AiPlanTripDetails = ({ navigation }) => {
                                         rating: restaurant.rating && restaurant.rating !== "N/A" ? restaurant.rating : 0,
                                         userRatingsTotal: restaurant.userRatingsTotal || 0,
                                         photos: restaurant.photos && Array.isArray(restaurant.photos)
-                                            ? restaurant.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                            ? restaurant.photos.map(photo => ({ url: photo.url || null }))
                                             : restaurant.image ? [{ url: restaurant.image }] : [],
                                         contact: {
                                             phone: restaurant?.contact?.phone || restaurant.phone || "",
                                             email: restaurant?.contact?.email || restaurant.email || "",
-                                            website: restaurant?.contact?.website || restaurant.website || "",
+                                            website: restaurant?.contact?.website === "N/A" ? "" : restaurant?.contact?.website ||
+                                                restaurant.website === "N/A" ? "" : restaurant.website || "",
                                             googleMapsUrl: restaurant?.contact?.googleMapsUrl || restaurant.googleMapsUrl || "",
                                         },
                                         operatingHours: {
@@ -437,9 +480,13 @@ const AiPlanTripDetails = ({ navigation }) => {
                         }))
                     },
                 };
-                console.log("id availble itineraryData", itineraryData)
+                // Format JSON with indentation for easy copy-paste
+                const formattedItinerary = JSON.stringify(itineraryData, null, 4);
+                console.log("===== COPY & PASTE ITINERARY DATA BELOW =====\n", formattedItinerary);
 
-                await updateItineraryById(itineraryId, itineraryData);
+                itineraryData.itinerary.updatedAt = new Date().toISOString();
+                const response = await updateItineraryById(itineraryId, itineraryData);
+                console.log("api response for updation", response)
                 Toast.show({
                     type: "success",
                     text1: "Success",
@@ -493,15 +540,15 @@ const AiPlanTripDetails = ({ navigation }) => {
                                     duration: hotel.duration || null,
                                     price: hotel.price || 0,
                                     priceLevel: hotel.priceLevel || 1,
-                                    rating: hotel.rating || 0,
+                                    rating: hotel.rating && hotel.rating !== "N/A" ? hotel.rating : 0,
                                     userRatingsTotal: hotel.userRatingsTotal || 0,
                                     photos: hotel.photos && Array.isArray(hotel.photos)
-                                        ? hotel.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                        ? hotel.photos.map(photo => ({ url: photo.url || null }))
                                         : hotel.image ? [{ url: hotel.image }] : [],
                                     contact: {
                                         phone: hotel.contact?.phone || hotel.phone || "",
                                         email: hotel.contact?.email || "",
-                                        website: hotel.contact?.website || hotel.website || "",
+                                        website: hotel.contact?.website === "N/A" ? "" : hotel.contact?.website || hotel.website === "N/A" ? "" : hotel.website || "",
                                         googleMapsUrl: hotel.contact?.googleMapsUrl || hotel.googleMapsUrl || "",
                                     },
                                     operatingHours: {
@@ -541,15 +588,16 @@ const AiPlanTripDetails = ({ navigation }) => {
                                     duration: activity.duration || null,
                                     price: activity.price || 0,
                                     priceLevel: activity.priceLevel || 1,
-                                    rating: activity.rating || 0,
+                                    rating: activity.rating && activity.rating !== "N/A" ? activity.rating : 0,
                                     userRatingsTotal: activity.userRatingsTotal || 0,
                                     photos: activity.photos && Array.isArray(activity.photos)
-                                        ? activity.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                        ? activity.photos.map(photo => ({ url: photo.url || null }))
                                         : activity.image ? [{ url: activity.image }] : [],
                                     contact: {
                                         phone: activity.contact?.phone || activity.phone || "",
                                         email: activity.contact?.email || activity.email || "",
-                                        website: activity.contact?.website || activity.website || "",
+                                        website: activity.contact?.website === "N/A" ? "" : activity.contact?.website ||
+                                            activity.website === "N/A" ? "" : activity.website || "",
                                         googleMapsUrl: activity.contact?.googleMapsUrl || activity.googleMapsUrl || "",
                                     },
                                     operatingHours: {
@@ -588,15 +636,16 @@ const AiPlanTripDetails = ({ navigation }) => {
                                     duration: restaurant.duration || null,
                                     price: restaurant.price || 0,
                                     priceLevel: restaurant.priceLevel || 1,
-                                    rating: restaurant.rating || 0,
+                                    rating: restaurant.rating && restaurant.rating !== "N/A" ? restaurant.rating : 0,
                                     userRatingsTotal: restaurant.userRatingsTotal || 0,
                                     photos: restaurant.photos && Array.isArray(restaurant.photos)
-                                        ? restaurant.photos.map(photo => ({ url: photo.url, caption: photo.caption || null }))
+                                        ? restaurant.photos.map(photo => ({ url: photo.url || null }))
                                         : restaurant.image ? [{ url: restaurant.image }] : [],
                                     contact: {
                                         phone: restaurant?.contact?.phone || restaurant.phone || "",
                                         email: restaurant?.contact?.email || restaurant.email || "",
-                                        website: restaurant?.contact?.website || restaurant.website || "",
+                                        website: restaurant?.contact?.website === "N/A" ? "" : restaurant?.contact?.website ||
+                                            restaurant.website === "N/A" ? "" : restaurant.website || "",
                                         googleMapsUrl: restaurant?.contact?.googleMapsUrl || restaurant.googleMapsUrl || "",
                                     },
                                     operatingHours: {
@@ -620,9 +669,12 @@ const AiPlanTripDetails = ({ navigation }) => {
                         })),
                     },
                 };
-                console.log("if id not availble itineraryData", itineraryData)
+                // Format JSON with indentation for easy copy-paste
+                const formattedItinerary = JSON.stringify(itineraryData, null, 4);
+                console.log("===== COPY & PASTE ITINERARY DATA BELOW =====\n", formattedItinerary);
 
-                await createItineraries(itineraryData);
+                const response = await createItineraries(itineraryData);
+                console.log("api response for creation", response)
                 Toast.show({
                     type: "success",
                     text1: "Success",
@@ -640,7 +692,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                 text2: "Failed to save itinerary. Try again later.",
             });
         } finally {
-            setLoading(false);
+            setSaveLoading(false);
         }
     };
 
@@ -654,7 +706,7 @@ const AiPlanTripDetails = ({ navigation }) => {
         try {
             if (!place || !place.location || !Array.isArray(place.location.coordinates)) {
                 logger.warn("Location data is missing. Redirecting to Google Maps.");
-                Linking.openURL("https://www.google.com/maps"); // ✅ Default to Google Maps
+                Linking.openURL("https://www.google.com/maps");
                 return;
             }
 
@@ -669,28 +721,42 @@ const AiPlanTripDetails = ({ navigation }) => {
 
             switch (actionType) {
                 case "viewPlace":
+                    console.log(`Opening Place: https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
                     Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
                     break;
 
                 case "directions":
+                    console.log(`Getting Directions: https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`);
                     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`);
                     break;
 
                 case "website":
-                    let websiteUrl = place.contact?.website?.trim() || "https://www.google.com"; // ✅ Default to Google if no website
+                    let websiteUrl = place.contact?.website?.trim();
+
+                    if (!websiteUrl || websiteUrl === "N/A") {
+                        logger.warn("Website URL is missing or 'N/A'. Redirecting to Google homepage.");
+                        Linking.openURL("https://www.google.com");
+                        return;
+                    }
+
+                    // Ensure the URL starts with http:// or https://
                     if (!/^https?:\/\//i.test(websiteUrl)) {
                         websiteUrl = `https://${websiteUrl}`;
                     }
+
+                    console.log("Opening Website:", websiteUrl);
                     Linking.openURL(websiteUrl);
                     break;
 
                 default:
-                    break
+                    logger.warn("Unknown action type.");
+                    break;
             }
         } catch (error) {
             logger.error("Error opening URL:", error);
         }
     };
+
 
     const handleDeleteItem = () => {
         if (!selectedItem || selectedItem.dayIndex === undefined) {
@@ -851,7 +917,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                                 </View>
                             </View>
                             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: wp(3), marginLeft: 'auto' }}>
-                                <TouchableOpacity style={styles.saveButton} onPress={handleSaveItinerary} activeOpacity={0.5}>
+                                <TouchableOpacity style={styles.saveButton} onPress={handleSaveItinerary} activeOpacity={0.5} disabled={saveLoading}>
                                     <SVGS.SAVE width={wp(5)} height={hp(2)} />
                                     <Text style={styles.buttonText}>Save</Text>
                                 </TouchableOpacity>
@@ -937,7 +1003,10 @@ const AiPlanTripDetails = ({ navigation }) => {
                                                             </View>
                                                             <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
                                                                 <Text style={styles.placePrice}>${hotel.price || 0}</Text>
-                                                                <Text style={styles.placeCategory} numberOfLines={1}>⭐ {hotel.rating || "N/A"}</Text>
+                                                                <Text style={styles.placeCategory} numberOfLines={1}>
+                                                                    ⭐ {hotel.rating && hotel.rating !== "N/A" ? hotel.rating : 0}
+                                                                </Text>
+
                                                             </View>
                                                         </View>
 
@@ -950,10 +1019,10 @@ const AiPlanTripDetails = ({ navigation }) => {
                                                                     return (
                                                                         <>
                                                                             <Text style={styles.distanceText}>
-                                                                                ⏱ {distances[`${currentHotelName}-${nextHotelName}`]?.distance || "N/A"}
+                                                                                ⏱ {distances[`${currentHotelName}-${nextHotelName}`]?.distance || "Calculating..."}
                                                                             </Text>
                                                                             <Text style={styles.timeText}>
-                                                                                📏 {distances[`${currentHotelName}-${nextHotelName}`]?.duration || "N/A"}
+                                                                                📏 {distances[`${currentHotelName}-${nextHotelName}`]?.duration || "Calculating..."}
                                                                             </Text>
                                                                         </>
                                                                     );
@@ -967,7 +1036,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                                             ))}
 
                                             {/* Activity Section */}
-                                            <OptionButton title="Add Activities" Icon={SVGS.ACTIVITY} isImage={true} onPress={() => handleAddItem('activity', index)} />
+                                            <OptionButton title="Add Places" Icon={SVGS.ACTIVITY} isImage={true} onPress={() => handleAddItem('activity', index)} />
                                             {activities.map((activity, activityIndex) => (
                                                 <TouchableOpacity key={activityIndex} onPress={() => handleItemPress(activity, index)} activeOpacity={0.7}>
                                                     <View >
@@ -992,22 +1061,32 @@ const AiPlanTripDetails = ({ navigation }) => {
                                                             </View>
                                                             <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
                                                                 <Text style={styles.placePrice}>${activity.price || 0}</Text>
-                                                                <Text style={styles.placeCategory} numberOfLines={1}>⭐ {activity.rating || "N/A"}</Text>
+                                                                <Text style={styles.placeCategory} numberOfLines={1}>
+                                                                    ⭐ {activity.rating && activity.rating !== "N/A" ? activity.rating : 0}
+                                                                </Text>
+
                                                             </View>
                                                         </View>
 
                                                         {activityIndex < activities.length - 1 && (
                                                             <View style={styles.distanceContainer}>
+                                                                {/* {console.log("activities Object:", activity)}
+                                                                {console.log("activities Array:", activities)}
+                                                                {console.log("Next activities Object:", activities[activityIndex + 1])} */}
                                                                 {(() => {
                                                                     const currentActivityName = activity.name || activity.title || "Unnamed Activity";
                                                                     const nextActivityName = activities[activityIndex + 1]?.name || activities[activityIndex + 1]?.title || "Unnamed Activity";
+
+                                                                    // console.log("Current activities:", currentActivityName);
+                                                                    // console.log("Next activities:", nextActivityName);
+                                                                    // console.log("Distance Info:", distances[`${currentActivityName}-${nextActivityName}`]);
                                                                     return (
                                                                         <>
                                                                             <Text style={styles.distanceText}>
-                                                                                ⏱ {distances[`${currentActivityName}-${nextActivityName}`]?.distance || "N/A"}
+                                                                                ⏱ {distances[`${currentActivityName}-${nextActivityName}`]?.distance || "Calculating..."}
                                                                             </Text>
                                                                             <Text style={styles.timeText}>
-                                                                                📏 {distances[`${currentActivityName}-${nextActivityName}`]?.duration || "N/A"}
+                                                                                📏 {distances[`${currentActivityName}-${nextActivityName}`]?.duration || "Calculating..."}
                                                                             </Text>
                                                                         </>
                                                                     );
@@ -1046,7 +1125,9 @@ const AiPlanTripDetails = ({ navigation }) => {
                                                             </View>
                                                             <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
                                                                 <Text style={styles.placePrice}>${restaurant.price || 0}</Text>
-                                                                <Text style={styles.placeCategory} numberOfLines={1}>⭐ {restaurant.rating || "N/A"}</Text>
+                                                                <Text style={styles.placeCategory} numberOfLines={1}>
+                                                                    ⭐ {restaurant.rating && restaurant.rating !== "N/A" ? restaurant.rating : 0}
+                                                                </Text>
                                                             </View>
                                                         </View>
 
@@ -1058,10 +1139,10 @@ const AiPlanTripDetails = ({ navigation }) => {
                                                                     return (
                                                                         <>
                                                                             <Text style={styles.distanceText}>
-                                                                                ⏱ {distances[`${currentRestaurantName}-${nextRestaurantName}`]?.distance || "N/A"}
+                                                                                ⏱ {distances[`${currentRestaurantName}-${nextRestaurantName}`]?.distance || "Calculating..."}
                                                                             </Text>
                                                                             <Text style={styles.timeText}>
-                                                                                📏 {distances[`${currentRestaurantName}-${nextRestaurantName}`]?.duration || "N/A"}
+                                                                                📏 {distances[`${currentRestaurantName}-${nextRestaurantName}`]?.duration || "Calculating..."}
                                                                             </Text>
                                                                         </>
                                                                     );
@@ -1087,6 +1168,8 @@ const AiPlanTripDetails = ({ navigation }) => {
             <RBSheet
                 ref={refRBSheet}
                 height={hp(28)}
+                closeOnPressBack={true}
+                closeOnDragDown={true}
                 openDuration={250}
                 customStyles={{
                     container: {
@@ -1212,8 +1295,6 @@ const OptionButton = ({ title, Icon, isImage, onPress }) => (
         </TouchableOpacity>
     </View>
 );
-
-
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.white },

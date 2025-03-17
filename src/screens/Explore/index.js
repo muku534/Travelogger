@@ -9,6 +9,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from "axios";
 import debounce from "lodash/debounce";
 import logger from '../../utils/logger';
+import FastImage from "react-native-fast-image";
 
 const Explore = ({ route }) => {
     const navigation = useNavigation();
@@ -173,7 +174,8 @@ const Explore = ({ route }) => {
 
                 {/* Map */}
                 <MapView
-                    style={styles.map}
+                    style={[styles.map, { height: nearbyPlaces.length > 0 ? hp(45) : hp(100) }]}
+
                     region={selectedLocation ? {
                         latitude: selectedLocation.latitude,
                         longitude: selectedLocation.longitude,
@@ -198,11 +200,13 @@ const Explore = ({ route }) => {
                             keyExtractor={(item) => item.place_id}
                             renderItem={({ item }) => (
                                 <TouchableOpacity style={styles.card} onPress={() => handleNearbySelect(item)} activeOpacity={0.7}>
-                                    <Image
+                                    <FastImage
                                         source={{
                                             uri: item.photos?.[0]?.photo_reference
                                                 ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${item.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
                                                 : "https://via.placeholder.com/400",
+                                            priority: FastImage.priority.high,
+                                            cache: FastImage.cacheControl.immutable,
                                         }}
                                         style={styles.cardImage}
                                     />
@@ -308,10 +312,6 @@ const styles = StyleSheet.create({
         // backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderTopLeftRadius: wp(4),
         borderTopRightRadius: wp(4),
-        shadowColor: "#000",
-        shadowOpacity: 0.2,
-        shadowOffset: { width: 0, height: -2 },
-        elevation: 5,
     },
     card: {
         marginBottom: hp(3),
@@ -356,3 +356,4 @@ const styles = StyleSheet.create({
     },
 
 });
+

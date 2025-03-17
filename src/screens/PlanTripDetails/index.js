@@ -11,6 +11,7 @@ import { createItineraries, ShareItinerary, updateItineraryById } from '../../se
 import logger from '../../utils/logger';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { DELETE_TRIP_DAY_ITEM } from '../../redux/Actions';
+import FastImage from 'react-native-fast-image';
 
 const PlanTripDetails = ({ navigation, route }) => {
     const refRBSheet = useRef(null); // Bottom Sheet Ref
@@ -48,26 +49,29 @@ const PlanTripDetails = ({ navigation, route }) => {
             const dateObj = new Date(dateString);
             return dateObj.toISOString().split("T")[0]; // Convert to YYYY-MM-DD
         };
+        console.log("before sending", tripDays)
 
         // Format itinerary data for API
         const itineraryData = {
             startDate: formatDate(startDate),
             endDate: formatDate(endDate),
-            recipientEmail: email, // Use entered email
+            destination: destination,
+            recipientEmail: email,
             dayPlans: tripDays
                 .map((day) => ({
-                    date: formatDate(day.day), // Convert to YYYY-MM-DD
+                    date: formatDate(day.day),
                     locations: day.items
-                        .filter((item) => item.title) // Ensure valid locations
+                        .filter((item) => item.title || item.name || item.location?.name || item.address) // ✅ Allow items with a name or address
                         .map((item) => ({
-                            name: item.title || "Unknown Location",
+                            name: item.title || item.name || item.location?.name || item.address || "Unknown Location",
                             category: item.type || "activity",
-                            address: item.location?.address || item.description || "No Address",
+                            address: item.location?.address || item.description || item.address || "No Address",
                         })),
                 }))
-                .filter((day) => day.locations.length > 0), // Remove empty `locations`
+                .filter((day) => day.locations.length > 0), // ✅ Keeps only days with at least one valid location
         };
 
+        console.log("before sharing itineray", itineraryData)
         try {
             await ShareItinerary(itineraryData); // Call API function
 
@@ -290,7 +294,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                                     contact: {
                                         phone: hotel.contact?.phone || hotel.phone || "",
                                         email: hotel.contact?.email || "",
-                                        website: hotel.contact?.website || hotel.website || "",
+                                        website: hotel.contact?.website === "N/A" ? "" : hotel.contact?.website || hotel.website === "N/A" ? "" : hotel.website || "",
                                         googleMapsUrl: hotel.contact?.googleMapsUrl || hotel.googleMapsUrl || "",
                                     },
                                     operatingHours: hotel.operatingHours || {},
@@ -331,7 +335,8 @@ const PlanTripDetails = ({ navigation, route }) => {
                                     contact: {
                                         phone: activity.contact?.phone || activity.phone || "",
                                         email: activity.contact?.email || activity.email || "",
-                                        website: activity.contact?.website || activity.website || "",
+                                        website: activity.contact?.website === "N/A" ? "" : activity.contact?.website ||
+                                            activity.website === "N/A" ? "" : activity.website || "",
                                         googleMapsUrl: activity.contact?.googleMapsUrl || activity.googleMapsUrl || "",
                                     },
                                     operatingHours: activity.operatingHours || {},
@@ -372,7 +377,8 @@ const PlanTripDetails = ({ navigation, route }) => {
                                     contact: {
                                         phone: restaurant?.contact?.phone || restaurant.phone || "",
                                         email: restaurant?.contact?.email || restaurant.email || "",
-                                        website: restaurant?.contact?.website || restaurant.website || "",
+                                        website: restaurant?.contact?.website === "N/A" ? "" : restaurant?.contact?.website ||
+                                            restaurant.website === "N/A" ? "" : restaurant.website || "",
                                         googleMapsUrl: restaurant?.contact?.googleMapsUrl || restaurant.googleMapsUrl || "",
                                     },
                                     operatingHours: restaurant.operatingHours || {},
@@ -394,6 +400,7 @@ const PlanTripDetails = ({ navigation, route }) => {
             console.log("Saving Itinerary - Data:", JSON.stringify(itineraryData, null, 2))
 
             if (itineraryId) {
+                itineraryData.itinerary.updatedAt = new Date().toISOString();
                 await updateItineraryById(itineraryId, itineraryData);
                 Toast.show({
                     type: "success",
@@ -428,59 +435,61 @@ const PlanTripDetails = ({ navigation, route }) => {
     };
 
     const handlePlaceAction = (place, actionType) => {
-        if (!place || !place.location || !Array.isArray(place.location.coordinates)) {
-            alert("Location data is missing.");
-            return;
-        }
-
-        const { coordinates } = place.location;
-        const [latitude, longitude] = coordinates;
-
-        console.log("Place location coordinates:", coordinates);
-
         try {
+            if (!place || !place.location || !Array.isArray(place.location.coordinates)) {
+                logger.warn("Location data is missing. Redirecting to Google Maps.");
+                Linking.openURL("https://www.google.com/maps");
+                return;
+            }
+
+            const { coordinates } = place.location;
+            const [latitude, longitude] = coordinates;
+
+            if (!latitude || !longitude) {
+                logger.warn("Invalid coordinates. Redirecting to Google Maps.");
+                Linking.openURL("https://www.google.com/maps");
+                return;
+            }
+
             switch (actionType) {
                 case "viewPlace":
-                    if (latitude && longitude) {
-                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-                        Linking.openURL(mapsUrl);
-                    } else {
-                        alert("Coordinates not available.");
-                    }
+                    console.log(`Opening Place: https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
+                    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
                     break;
 
                 case "directions":
-                    if (latitude && longitude) {
-                        const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
-                        Linking.openURL(directionsUrl);
-                    } else {
-                        alert("Coordinates not available.");
-                    }
+                    console.log(`Getting Directions: https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`);
+                    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`);
                     break;
 
                 case "website":
                     let websiteUrl = place.contact?.website?.trim();
 
-                    // If the website URL is missing or empty, open Google
-                    if (!websiteUrl) {
-                        websiteUrl = "https://www.google.com";
+                    if (!websiteUrl || websiteUrl === "N/A") {
+                        logger.warn("Website URL is missing or 'N/A'. Redirecting to Google homepage.");
+                        Linking.openURL("https://www.google.com");
+                        return;
                     }
-                    // If the URL does NOT start with http or https, prepend "https://"
-                    else if (!/^https?:\/\//i.test(websiteUrl)) {
+
+                    // Ensure the URL starts with http:// or https://
+                    if (!/^https?:\/\//i.test(websiteUrl)) {
                         websiteUrl = `https://${websiteUrl}`;
                     }
 
+                    console.log("Opening Website:", websiteUrl);
                     Linking.openURL(websiteUrl);
                     break;
 
                 default:
-                    alert("Invalid action.");
+                    logger.warn("Unknown action type.");
+                    break;
             }
         } catch (error) {
-            console.error("Error opening URL:", error);
-            alert("Something went wrong. Please try again.");
+            logger.error("Error opening URL:", error);
         }
     };
+
+
 
     const handleDeleteItem = () => {
         if (!selectedItem || selectedItem.dayIndex === undefined) {
@@ -557,26 +566,33 @@ const PlanTripDetails = ({ navigation, route }) => {
                             />
 
                             {/* ✅ Loop through `tripDays` and show all places */}
-                            {tripDays?.map((day, dayIndex) =>
-                                day.items?.map((place, placeIndex) => {
-                                    const placeCoords = place?.location?.coordinates;
-                                    if (!placeCoords || placeCoords.length !== 2) return null; // Ensure valid coordinates
+                            {tripDays?.map((day, dayIndex) => {
+                                const places = [
+                                    ...(day.items || []),
+                                    ...(day.sections?.hotels || []),
+                                    ...(day.sections?.activities || []),
+                                    ...(day.sections?.restaurants || []),
+                                ];
+
+                                return places.map((place, index) => {
+                                    if (!place.location?.coordinates) return null;
 
                                     return (
                                         <Marker
-                                            key={`marker-${dayIndex}-${placeIndex}`}
+                                            key={`${dayIndex}-${index}`}
                                             coordinate={{
-                                                latitude: placeCoords[0],
-                                                longitude: placeCoords[1],
+                                                latitude: place.location.coordinates[0],
+                                                longitude: place.location.coordinates[1],
                                             }}
-                                            title={place.name || "Unknown Place"}
+                                            title={place.title || place.name}
                                             description={place.description || "No description available"}
                                         >
+                                            {/* ✅ Custom PNG Marker based on type */}
                                             <Image source={getMarkerImage(place.type)} style={styles.customMarker} />
                                         </Marker>
                                     );
-                                })
-                            )}
+                                });
+                            })}
                         </MapView>
 
                     )}
@@ -647,6 +663,8 @@ const PlanTripDetails = ({ navigation, route }) => {
                                 hotels = item.items.filter((place) => place.type?.toLowerCase() === "hotel");
                                 activities = item.items.filter((place) => place.type?.toLowerCase() === "activity");
                                 restaurants = item.items.filter((place) => place.type?.toLowerCase() === "restaurant");
+
+                                console.log("items", item.items)
                             } else if (item?.sections) {
                                 // ✅ Handles `sections` format
                                 hotels = item.sections.hotels || [];
@@ -683,8 +701,12 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                     <View>
                                                         <View style={styles.placeContainer}>
                                                             <View style={styles.imageContainer}>
-                                                                <Image
-                                                                    source={{ uri: hotel.image || (hotel.photos?.length > 0 ? hotel.photos[0].url : "fallback-image-url") }}
+                                                                <FastImage
+                                                                    source={{
+                                                                        uri: hotel.image || (hotel.photos?.length > 0 ? hotel.photos[0].url : "fallback-image-url"),
+                                                                        priority: FastImage.priority.high,
+                                                                        cache: FastImage.cacheControl.immutable
+                                                                    }}
                                                                     style={styles.placeImage}
                                                                 />
 
@@ -701,7 +723,9 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                             </View>
                                                             <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
                                                                 <Text style={styles.placePrice}>${hotel.price || 0}</Text>
-                                                                <Text style={styles.placeCategory} numberOfLines={1}>⭐ {hotel.rating || "N/A"}</Text>
+                                                                <Text style={styles.placeCategory} numberOfLines={1}>
+                                                                    ⭐ {hotel.rating && hotel.rating !== "N/A" ? hotel.rating : 0}
+                                                                </Text>
                                                             </View>
                                                         </View>
 
@@ -723,10 +747,10 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                                     return (
                                                                         <>
                                                                             <Text style={styles.distanceText}>
-                                                                                ⏱ {distances[`${currentHotelName}-${nextHotelName}`]?.distance || "N/A"}
+                                                                                ⏱ {distances[`${currentHotelName}-${nextHotelName}`]?.distance || "Calculating..."}
                                                                             </Text>
                                                                             <Text style={styles.timeText}>
-                                                                                📏 {distances[`${currentHotelName}-${nextHotelName}`]?.duration || "N/A"}
+                                                                                📏 {distances[`${currentHotelName}-${nextHotelName}`]?.duration || "Calculating..."}
                                                                             </Text>
                                                                         </>
                                                                     );
@@ -740,14 +764,18 @@ const PlanTripDetails = ({ navigation, route }) => {
                                             ))}
 
                                             {/* Activity Section */}
-                                            <OptionButton title="Add Activities" Icon={SVGS.ACTIVITYICON} isImage={true} onPress={() => handleAddItem('activity', index)} />
+                                            <OptionButton title="Add Places" Icon={SVGS.ACTIVITYICON} isImage={true} onPress={() => handleAddItem('activity', index)} />
                                             {activities.map((activity, activityIndex) => (
                                                 <TouchableOpacity key={activityIndex} onPress={() => handleItemPress(activity, index)} activeOpacity={0.7}>
                                                     <View>
                                                         <View style={styles.placeContainer}>
                                                             <View style={styles.imageContainer}>
-                                                                <Image
-                                                                    source={{ uri: activity.image || (activity.photos?.length > 0 ? activity.photos[0].url : "fallback-image-url") }}
+                                                                <FastImage
+                                                                    source={{
+                                                                        uri: activity.image || (activity.photos?.length > 0 ? activity.photos[0].url : "fallback-image-url"),
+                                                                        priority: FastImage.priority.high,
+                                                                        cache: FastImage.cacheControl.immutable
+                                                                    }}
                                                                     style={styles.placeImage}
                                                                 />
 
@@ -765,7 +793,9 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                             </View>
                                                             <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
                                                                 <Text style={styles.placePrice}>${activity.price || 0}</Text>
-                                                                <Text style={styles.placeCategory} numberOfLines={1}>⭐ {activity.rating || "N/A"}</Text>
+                                                                <Text style={styles.placeCategory} numberOfLines={1}>
+                                                                    ⭐ {activity.rating && activity.rating !== "N/A" ? activity.rating : 0}
+                                                                </Text>
                                                             </View>
                                                         </View>
 
@@ -782,8 +812,8 @@ const PlanTripDetails = ({ navigation, route }) => {
 
                                                                     return (
                                                                         <>
-                                                                            <Text style={styles.distanceText}> ⏱ {distances[`${currentActivity}-${nextActivity}`]?.distance || "N/A"}</Text>
-                                                                            <Text style={styles.timeText}> 📏 {distances[`${currentActivity}-${nextActivity}`]?.duration || "N/A"}</Text>
+                                                                            <Text style={styles.distanceText}> ⏱ {distances[`${currentActivity}-${nextActivity}`]?.distance || "Calculating..."}</Text>
+                                                                            <Text style={styles.timeText}> 📏 {distances[`${currentActivity}-${nextActivity}`]?.duration || "Calculating..."}</Text>
                                                                         </>
                                                                     );
                                                                 })()}
@@ -802,8 +832,12 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                     <View>
                                                         <View style={styles.placeContainer}>
                                                             <View style={styles.imageContainer}>
-                                                                <Image
-                                                                    source={{ uri: restaurant.image || (restaurant.photos?.length > 0 ? restaurant.photos[0].url : "fallback-image-url") }}
+                                                                <FastImage
+                                                                    source={{
+                                                                        uri: restaurant.image || (restaurant.photos?.length > 0 ? restaurant.photos[0].url : "fallback-image-url"),
+                                                                        priority: FastImage.priority.high,
+                                                                        cache: FastImage.cacheControl.immutable
+                                                                    }}
                                                                     style={styles.placeImage}
                                                                 />
 
@@ -821,7 +855,9 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                             </View>
                                                             <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
                                                                 <Text style={styles.placePrice}>${restaurant.price || 0}</Text>
-                                                                <Text style={styles.placeCategory} numberOfLines={1}>⭐ {restaurant.rating || "N/A"}</Text>
+                                                                <Text style={styles.placeCategory} numberOfLines={1}>
+                                                                    ⭐ {restaurant.rating && restaurant.rating !== "N/A" ? restaurant.rating : 0}
+                                                                </Text>
                                                             </View>
                                                         </View>
 
@@ -833,8 +869,8 @@ const PlanTripDetails = ({ navigation, route }) => {
 
                                                                     return (
                                                                         <>
-                                                                            <Text style={styles.distanceText}> ⏱ {distances[`${currentRestaurant}-${nextRestaurant}`]?.distance || "N/A"}</Text>
-                                                                            <Text style={styles.timeText}> 📏 {distances[`${currentRestaurant}-${nextRestaurant}`]?.duration || "N/A"}</Text>
+                                                                            <Text style={styles.distanceText}> ⏱ {distances[`${currentRestaurant}-${nextRestaurant}`]?.distance || "Calculating..."}</Text>
+                                                                            <Text style={styles.timeText}> 📏 {distances[`${currentRestaurant}-${nextRestaurant}`]?.duration || "Calculating..."}</Text>
                                                                         </>
                                                                     );
                                                                 })()}
@@ -859,6 +895,8 @@ const PlanTripDetails = ({ navigation, route }) => {
                 ref={refRBSheet}
                 height={hp(28)}
                 openDuration={250}
+                closeOnPressBack={true}
+                closeOnDragDown={true}
                 customStyles={{
                     container: {
                         borderTopLeftRadius: wp(5),
@@ -959,7 +997,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                     </View>
                 </TouchableWithoutFeedback>
             </Modal>
-        </SafeAreaView>
+        </SafeAreaView >
     );
 };
 

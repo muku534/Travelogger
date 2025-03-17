@@ -49,17 +49,23 @@ const EditProfile = ({ navigation }) => {
     const handleSaveChanges = async () => {
         setloading(true);
         try {
+            const normalizeUrl = (url) => {
+                if (!url) return "";
+                return !/^https?:\/\//i.test(url) ? `https://${url}` : url;
+            };
+
             const updatedData = {
                 ...formData,
+                website: normalizeUrl(formData.website),
                 languages: formData.languages
                     ? formData.languages.split(',').map(lang => lang.trim()) // Convert string to array
                     : [], // Ensure it's an empty array if empty
                 socialMedia: {
-                    instagram: formData.instagram,
-                    facebook: formData.facebook,
-                    twitter: formData.twitter,
-                    linkedin: formData.linkedin,
-                    youtube: formData.youtube,
+                    instagram: normalizeUrl(formData.instagram),
+                    facebook: normalizeUrl(formData.facebook),
+                    twitter: normalizeUrl(formData.twitter),
+                    linkedin: normalizeUrl(formData.linkedin),
+                    youtube: normalizeUrl(formData.youtube),
                 }
             };
 
@@ -127,7 +133,7 @@ const EditProfile = ({ navigation }) => {
                                     name: "Full Name",
                                     email: "Email",
                                     phone: "Phone Number",
-                                    location: "Location",
+                                    location: "Address",
                                     website: "Website",
                                     languages: "Languages",
                                     bio: "Bio",

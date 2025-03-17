@@ -14,7 +14,7 @@ import { SET_TRIP_DETAILS } from "../../redux/Actions";
 import logger from '../../utils/logger'
 
 const AIPlanTrip = ({ navigation }) => {
-    const { destination, suggestions, showSuggestions, selectedLocation, handleDestinationChange, handlePlaceSelect } = usePlaceSearch();
+    const { destination, suggestions, showSuggestions, placeImages, selectedLocation, handleDestinationChange, handlePlaceSelect } = usePlaceSearch();
     const dispatch = useDispatch();
     const userData = useSelector(state => state.userData);
     const [startDate, setStartDate] = useState(null);
@@ -139,9 +139,10 @@ const AIPlanTrip = ({ navigation }) => {
                     tripDetails: {
                         itineraryId: null,
                         destination: response.tripDetails?.destination?.name || "",
+                        tripImg: placeImages[0],
                         startDate: response.tripDetails?.startDate || "",
                         endDate: response.tripDetails?.endDate || "",
-                        coordinates: response.tripDetails?.destination?.coordinates || null,
+                        coordinates: response.tripDetails?.destination?.coordinates || selectedLocation || null,
                         tripDays: tripDays, // Now correctly formatted
                     },
                 },
@@ -153,7 +154,9 @@ const AIPlanTrip = ({ navigation }) => {
             }, 300);
 
         } catch (error) {
-            logger.error("Error generating itinerary:", error?.response || error);
+            const formattedError = JSON.stringify(error?.response?.data || error, null, 2);
+            console.error("API Error:", formattedError);
+            // console.error("Error generating itinerary:", error?.response || error);
             Toast.show({
                 type: "error",
                 text1: "Error",

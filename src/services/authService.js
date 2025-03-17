@@ -12,12 +12,18 @@ export const login = async (email, password) => {
 export const googleLogin = async ({ idToken }) => {
     try {
         const response = await api.post("/google", { idToken });
-
-        return response.data;  // Return user data or other relevant information
+        return {
+            status: response.status, // Extract HTTP status from headers
+            ...response.data         // Spread response data
+        };
     } catch (error) {
-        throw error.response?.data || { message: "Something went wrong" };
+        return {
+            status: error.response?.status || 500, // Get status from headers, fallback to 500
+            message: error.response?.data?.message || "Something went wrong"
+        };
     }
 };
+
 
 // Similar logic for signUp
 export const signUp = async (userData) => {

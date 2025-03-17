@@ -1,5 +1,5 @@
-import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, TextInput } from 'react-native';
-import React, { useState } from 'react';
+import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, ScrollView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import React, { useEffect, useState } from 'react';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import { COLORS } from "../../../constants";
 import fontFamily from "../../../constants/fontFamily";
@@ -9,10 +9,21 @@ import Button from '../../components/Button';
 import Email from '../../../assets/icons/email.svg';
 import Toast from 'react-native-toast-message';
 import { sendOTP } from '../../services/authService';
+import { useSelector } from 'react-redux';
 
-const ForgotPassword = ({ navigation }) => {
+const ForgotPassword = ({ navigation, route }) => {
+    const { screenType = "forgotPassword" } = route.params || {};
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
+    const userData = useSelector(state => state.userData);
+    const [isEditable, setIsEditable] = useState(true);
+
+    useEffect(() => {
+        if (userData?.email) {
+            setEmail(userData.email);
+            setIsEditable(false); // Disable input if email exists
+        }
+    }, [userData]);
 
     const validateEmail = (email) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -56,54 +67,67 @@ const ForgotPassword = ({ navigation }) => {
         setLoading(false);
     };
 
+    const dismissKeyboard = () => {
+        Keyboard.dismiss();
+    };
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar backgroundColor={COLORS.white} barStyle="dark-content" />
-            <View style={styles.container}>
-                {/* Header */}
-                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={wp(6)} color={COLORS.darkgray} />
-                </TouchableOpacity>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+            >
+                <TouchableWithoutFeedback onPress={dismissKeyboard}>
+                    <ScrollView contentContainerStyle={{ flex: 1 }}>
+                        <View style={styles.container}>
+                            {/* Header */}
+                            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                                <Ionicons name="arrow-back" size={wp(6)} color={COLORS.darkgray} />
+                            </TouchableOpacity>
 
-                {/* Forgot Password Icon */}
-                <View style={styles.svgContainer}>
-                    <ForgotPasswordImage width={hp(35)} height={hp(20)} />
-                </View>
+                            {/* Forgot Password Icon */}
+                            <View style={styles.svgContainer}>
+                                <ForgotPasswordImage width={hp(35)} height={hp(20)} />
+                            </View>
 
-                {/* Forgot Password Title */}
-                <Text style={styles.title}>Forgot Password</Text>
+                            {/* Forgot Password Title */}
+                            <Text style={styles.title}>{screenType === "changePassword" ? "Change Password" : "Forgot Password"}</Text>
 
-                {/* Instruction Text */}
-                <Text style={styles.instruction}>
-                    Please enter the Email ID that you have registered for the Travelogger account.
-                </Text>
+                            {/* Instruction Text */}
+                            <Text style={styles.instruction}>
+                                {screenType === "changePassword"
+                                    ? "Enter your email to receive an OTP and reset your password."
+                                    : "Please enter the Email ID that you have registered for the Travelogger account."
+                                }
+                            </Text>
 
-                {/* Input Field */}
-                <View style={styles.inputWrapper}>
-                    <View style={styles.inputContainer}>
-                        <Email width={hp(2.6)} height={hp(2.6)} />
-                        <TextInput
-                            placeholder="Email ID"
-                            placeholderTextColor={COLORS.darkgray}
-                            keyboardType="email-address"
-                            style={styles.input}
-                            value={email}
-                            onChangeText={setEmail}
-                            editable={!loading}
-                        />
-                    </View>
-                </View>
+                            {/* Input Field */}
+                            <View style={styles.inputWrapper}>
+                                <View style={styles.inputContainer}>
+                                    <Email width={hp(2.6)} height={hp(2.6)} />
+                                    <TextInput
+                                        placeholder="Email ID"
+                                        placeholderTextColor={COLORS.darkgray}
+                                        keyboardType="email-address"
+                                        style={styles.input}
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        editable={isEditable && !loading}
+                                    />
+                                </View>
+                            </View>
 
-                {/* Submit Button */}
-                <Button
-                    title={loading ? "Sending OTP..." : "Send OTP"}
-                    onPress={handleSendOTP}
-                    disabled={loading}
-                />
-            </View>
-
-            {/* Toast container */}
-            <Toast />
+                            {/* Submit Button */}
+                            <Button
+                                title={loading ? "Sending OTP..." : "Send OTP"}
+                                onPress={handleSendOTP}
+                                disabled={loading}
+                            />
+                        </View>
+                    </ScrollView>
+                </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };

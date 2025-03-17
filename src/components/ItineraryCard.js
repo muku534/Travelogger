@@ -227,8 +227,10 @@ const ItineraryCard = ({ item, onPress, showAIBadge = false, }) => {
             {/* Bottom Sheet */}
             <RBSheet
                 ref={refRBSheet}
-                height={hp(8)}
+                height={hp(10.5)}
                 openDuration={250}
+                closeOnPressBack={true}
+                closeOnDragDown={true} 
                 customStyles={{
                     container: {
                         borderTopLeftRadius: wp(5),

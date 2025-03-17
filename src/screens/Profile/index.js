@@ -6,7 +6,7 @@ import { COLORS, SVGS } from '../../../constants';
 import fontFamily from '../../../constants/fontFamily';
 import { useDispatch, useSelector } from 'react-redux';
 import { deleteAccount, getProfile } from '../../services/authService';
-import { FETCH_PROFILE } from '../../redux/Actions';
+import { FETCH_PROFILE, LOGOUT } from '../../redux/Actions';
 import logger from '../../utils/logger';
 import { storeDataInAsyncStorage } from '../../utils/Helper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -52,9 +52,9 @@ const Profile = ({ navigation }) => {
     }, []);
 
     // Function to Handle Navigation
-    const handleNavigation = (screen) => {
+    const handleNavigation = (screen, params = {}) => {
         if (screen) {
-            navigation.navigate(screen);
+            navigation.navigate(screen, params);
         }
     };
 
@@ -78,7 +78,7 @@ const Profile = ({ navigation }) => {
                                 text2: "Your account has been successfully deleted.",
                             });
 
-                            navigation.reset({ index: 0, routes: [{ name: 'Login' }] }); // Navigate to Login
+                            navigation.reset({ index: 0, routes: [{ name: 'SocialAuth' }] }); // Navigate to Login
                         } catch (error) {
                             logger.error("Delete Account Error:", error);
                             Toast.show({
@@ -101,6 +101,7 @@ const Profile = ({ navigation }) => {
     const handleLogout = async () => {
         try {
             await AsyncStorage.removeItem('userData'); // Clear stored user data
+            dispatch({ type: LOGOUT }); 
             navigation.reset({ index: 0, routes: [{ name: 'SocialAuth' }] }); // Navigate to Login
         } catch (error) {
             logger.error("Logout Error:", error);
@@ -111,7 +112,7 @@ const Profile = ({ navigation }) => {
     // Menu Items with Navigation Screens
     const menuItems = [
         { label: 'Edit Profile', icon: <SVGS.EDIT_PROFILE width={hp(3.3)} height={hp(3)} />, screen: 'EditProfile' },
-        { label: 'Change Password', icon: <SVGS.PASSWORD width={hp(3.3)} height={hp(3)} />, screen: 'ChangePassword' },
+        { label: 'Change Password', icon: <SVGS.PASSWORD width={hp(3.3)} height={hp(3)} />, action: () => handleNavigation('ForgotPassword', { screenType: 'changePassword' }) },
         { label: 'Notification Settings', icon: <SVGS.NOTIFICATION width={hp(3.3)} height={hp(3)} />, action: openNotificationSettings },
         { label: 'Privacy Policy', icon: <SVGS.PRIVACY width={hp(3.3)} height={hp(3)} />, screen: 'Privacy' },
         { label: 'Terms and Conditions', icon: <SVGS.TERMS width={hp(3.3)} height={hp(3)} />, screen: 'Terms' },
@@ -150,7 +151,7 @@ const Profile = ({ navigation }) => {
                                     style={styles.socialIcon}
                                     onPress={() => openSocialLink(userData.socialMedia.youtube)}
                                 >
-                                    <SVGS.YOUTUBE width={hp(4)} height={hp(4)} />
+                                    <SVGS.YOUTUBE width={hp(3.8)} height={hp(3.8)} />
                                 </TouchableOpacity>
                             )}
 
@@ -159,7 +160,7 @@ const Profile = ({ navigation }) => {
                                     style={styles.socialIcon}
                                     onPress={() => openSocialLink(userData.socialMedia.facebook)}
                                 >
-                                    <SVGS.FACEBOOK width={hp(3.9)} height={hp(3.9)} />
+                                    <SVGS.FACEBOOK width={hp(3.8)} height={hp(3.8)} />
                                 </TouchableOpacity>
                             )}
 
@@ -168,7 +169,7 @@ const Profile = ({ navigation }) => {
                                     style={styles.socialIcon}
                                     onPress={() => openSocialLink(userData.socialMedia.instagram)}
                                 >
-                                    <SVGS.INSTAGRAM width={hp(3)} height={hp(3)} />
+                                    <SVGS.INSTAGRAMICON width={hp(4.2)} height={hp(4.2)} />
                                 </TouchableOpacity>
                             )}
 
@@ -177,7 +178,7 @@ const Profile = ({ navigation }) => {
                                     style={styles.socialIcon}
                                     onPress={() => openSocialLink(userData.socialMedia.linkedin)}
                                 >
-                                    <SVGS.LINKEDIN width={hp(3)} height={hp(3)} />
+                                    <SVGS.LINKEDINICON width={hp(3.8)} height={hp(3.8)} />
                                 </TouchableOpacity>
                             )}
 
@@ -186,7 +187,7 @@ const Profile = ({ navigation }) => {
                                     style={styles.socialIcon}
                                     onPress={() => openSocialLink(userData.socialMedia.twitter)}
                                 >
-                                    <SVGS.TWITTER width={hp(3)} height={hp(3)} />
+                                    <SVGS.TWITTERICON width={hp(3.8)} height={hp(3.8)} />
                                 </TouchableOpacity>
                             )}
 
@@ -195,7 +196,7 @@ const Profile = ({ navigation }) => {
                                     style={styles.socialIcon}
                                     onPress={() => openSocialLink(userData.website)}
                                 >
-                                    <Ionicons name="globe-outline" size={hp(3.5)} color={COLORS.darkgray} />
+                                    <SVGS.WORLDICON width={hp(3.8)} height={hp(3.8)} />
                                 </TouchableOpacity>
                             )}
 

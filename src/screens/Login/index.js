@@ -165,7 +165,7 @@ const Login = ({ navigation }) => {
                             {/* Signup Navigation */}
                             <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginTop: hp(2) }}>
                                 <Text style={styles.signupText}>Didn’t have an Account?</Text>
-                                <TouchableOpacity onPress={() => navigation.navigate('SignUp')} activeOpacity={0.7}>
+                                <TouchableOpacity onPress={() => navigation.replace('SignUp')} activeOpacity={0.7}>
                                     <Text style={styles.signupBold}> Create Account</Text>
                                 </TouchableOpacity>
                             </View>

@@ -104,7 +104,7 @@ const FloatingActionButton = () => {
                         <SVGS.PLUSICON width={hp(4)} height={hp(4)} fill={COLORS.white} />
                     )}
                 </TouchableOpacity>
-            </View>
+            </View >
         </>
     );
 };
@@ -184,8 +184,8 @@ const TabStack = () => {
                 options={{
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
-                        focused ? <SVGS.PROFILEACTIVEICON width={hp(3.3)} height={hp(3.3)} />
-                            : <SVGS.PROFILE width={hp(3.3)} height={hp(3.3)} />
+                        focused ? <SVGS.PROFILE width={hp(3.3)} height={hp(3.3)} />
+                            : <SVGS.PROFILEICON width={hp(3.3)} height={hp(3.3)} />
                     ),
                     tabBarLabel: "Profile",
                 }}

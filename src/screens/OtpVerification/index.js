@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, TextInput } from 'react-native';
+import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, Keyboard, ToastAndroid, ScrollView, TouchableWithoutFeedback } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import { COLORS, fontFamily } from "../../../constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Button from '../../components/Button';
 import OTPVerification from '../../../assets/icons/OTP_Verification.svg'
-import Toast from 'react-native-toast-message';
+import Toast from "react-native-toast-message";
 import { verifyOTP } from '../../services/authService';
 
 const OtpVerification = ({ navigation, route }) => {
@@ -39,79 +39,137 @@ const OtpVerification = ({ navigation, route }) => {
     };
 
     const handleSubmitOTP = async () => {
+        Keyboard.dismiss();
         const OTP = otp.join("");
 
         if (OTP.length !== 6) {
-            Toast.show({ type: "error", text1: "Invalid OTP", text2: "Enter the 6-digit OTP." });
+            console.log("Invalid OTP length:", OTP.length);
+            ToastAndroid.showWithGravity(
+                'Enter the 6-digit OTP',
+                ToastAndroid.SHORT,
+                ToastAndroid.TOP,
+            );
             return;
         }
 
-        setLoading(true);
         try {
-            await verifyOTP(email, OTP);
-            Toast.show({ type: "success", text1: "OTP Verified", text2: "You can now create a new password." });
-            setTimeout(() => {
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'CreatePassword', params: { email } }], // ✅ Correct way to pass email
-                });
-            }, 1000);
+            setLoading(true);
+            const response = await verifyOTP(email, OTP);
+
+            console.log("API Response:", response); // ✅ Debugging Response
+
+            // ✅ Fix: Use response.statusCode instead of response.status
+            if (response?.statusCode === 200) {
+                console.log("OTP Verified! Redirecting to Create Password...");
+                ToastAndroid.showWithGravity(
+                    'OTP Verified! Redirecting...',
+                    ToastAndroid.SHORT,
+                    ToastAndroid.TOP,
+                );
+
+                setTimeout(() => {
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'CreatePassword', params: { email } }],
+                    });
+                }, 1000);
+            } else {
+                console.log("Unexpected Response:", response);
+                const errorMessage = response?.message || "Something went wrong!";
+                ToastAndroid.showWithGravity(
+                    errorMessage,
+                    ToastAndroid.SHORT,
+                    ToastAndroid.TOP,
+                );
+            }
         } catch (error) {
-            Toast.show({ type: "error", text1: "Verification Failed", text2: error.message || "Invalid OTP." });
+            console.log("OTP Verification Failed:", error);
+
+            if (response?.statusCode === 400) {
+                ToastAndroid.showWithGravity(
+                    'Invalid OTP. Please try again',
+                    ToastAndroid.SHORT,
+                    ToastAndroid.TOP,
+                );
+            } else if (response?.status === 500 && response?.data?.message.includes("Invalid or expired OTP")) {
+                ToastAndroid.showWithGravity(
+                    'Invalid or expired OTP',
+                    ToastAndroid.SHORT,
+                    ToastAndroid.TOP,
+                );
+            }
+            else {
+                ToastAndroid.showWithGravity(
+                    'Something went wrong. Try again later!',
+                    ToastAndroid.SHORT,
+                    ToastAndroid.TOP,
+                );
+            }
         }
+
         setLoading(false);
+    };
+
+    const dismissKeyboard = () => {
+        Keyboard.dismiss();
     };
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar backgroundColor={COLORS.white} barStyle="dark-content" />
-            <View style={styles.container}>
-                {/* Back Button */}
-                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={wp(6)} color={COLORS.darkgray} />
-                </TouchableOpacity>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+                <TouchableWithoutFeedback onPress={dismissKeyboard}>
+                    <ScrollView contentContainerStyle={{ flex: 1 }}>
+                        <View style={styles.container}>
+                            {/* Back Button */}
+                            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                                <Ionicons name="arrow-back" size={wp(6)} color={COLORS.darkgray} />
+                            </TouchableOpacity>
 
-                <View style={{ flex: 1, alignItems: 'center' }}>
-                    {/* OTP Illustration */}
-                    <View style={styles.imageContainer}>
-                        <OTPVerification width={wp(60)} height={hp(25)} />
-                    </View>
+                            <View style={{ flex: 1, alignItems: 'center' }}>
+                                {/* OTP Illustration */}
+                                <View style={styles.imageContainer}>
+                                    <OTPVerification width={wp(60)} height={hp(25)} />
+                                </View>
 
-                    {/* Title */}
-                    <Text style={styles.title}>OTP Verification</Text>
+                                {/* Title */}
+                                <Text style={styles.title}>OTP Verification</Text>
 
-                    {/* Subtitle */}
-                    <Text style={styles.subtitle}>Please enter the OTP to create the New Password</Text>
+                                {/* Subtitle */}
+                                <Text style={styles.subtitle}>Please enter the OTP to create the New Password</Text>
 
-                    {/* OTP Input Fields */}
-                    <View style={styles.otpContainer}>
-                        {otp.map((digit, index) => (
-                            <TextInput
-                                key={index}
-                                ref={inputRefs[index]}
-                                style={styles.otpBox}
-                                maxLength={1}
-                                keyboardType="numeric"
-                                value={digit}
-                                onChangeText={(value) => handleOTPChange(value, index)}
-                                onKeyPress={({ nativeEvent }) => {
-                                    if (nativeEvent.key === "Backspace") {
-                                        handleBackspace(index);
-                                    }
-                                }}
-                            />
-                        ))}
-                    </View>
+                                {/* OTP Input Fields */}
+                                <View style={styles.otpContainer}>
+                                    {otp.map((digit, index) => (
+                                        <TextInput
+                                            key={index}
+                                            ref={inputRefs[index]}
+                                            style={styles.otpBox}
+                                            maxLength={1}
+                                            keyboardType="numeric"
+                                            value={digit}
+                                            onChangeText={(value) => handleOTPChange(value, index)}
+                                            onKeyPress={({ nativeEvent }) => {
+                                                if (nativeEvent.key === "Backspace") {
+                                                    handleBackspace(index);
+                                                }
+                                            }}
+                                        />
+                                    ))}
+                                </View>
 
-                    {/* Submit Button */}
-                    <Button
-                        title={loading ? "Verifying OTP..." : "Verify OTP"}
-                        onPress={handleSubmitOTP}
-                        disabled={loading}
-                    />
+                                {/* Submit Button */}
+                                <Button
+                                    title={loading ? "Verifying OTP..." : "Verify OTP"}
+                                    onPress={handleSubmitOTP}
+                                    disabled={loading}
+                                />
 
-                </View>
-            </View>
+                            </View>
+                        </View>
+                    </ScrollView>
+                </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };

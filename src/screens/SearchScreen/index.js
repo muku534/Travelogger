@@ -15,6 +15,7 @@ import { ADD_TRIP_DAY_ITEM } from "../../redux/Actions";
 import logger from '../../utils/logger';
 import Toast from "react-native-toast-message";
 import { v4 as uuidv4 } from 'uuid';
+import FastImage from "react-native-fast-image";
 
 
 const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
@@ -35,7 +36,6 @@ const SearchScreen = ({ route }) => {
     const dispatch = useDispatch();
 
     const coordinates = route.params.coordinates;
-    console.log("coordinates from routes", coordinates)
     const type = route.params.type;
     const dayIndex = route.params.dayIndex;
 
@@ -47,6 +47,75 @@ const SearchScreen = ({ route }) => {
     const [directions, setDirections] = useState([]);
 
     const suggestionBoxRef = useRef(new Animated.Value(0)).current;
+    const [tripCountryCode, setTripCountryCode] = useState(null);
+    const [nearbyPlaces, setNearbyPlaces] = useState([]); // ✅ Store nearby places
+
+    useEffect(() => {
+        const fetchCountryCode = async () => {
+            try {
+                const response = await axios.get(
+                    `https://maps.googleapis.com/maps/api/geocode/json`,
+                    {
+                        params: {
+                            latlng: `${coordinates[0]},${coordinates[1]}`,
+                            key: GOOGLE_API_KEY,
+                        },
+                    }
+                );
+
+                if (response.data.status === "OK") {
+                    const addressComponents = response.data.results[0].address_components;
+                    const countryComponent = addressComponents.find(comp => comp.types.includes("country"));
+                    if (countryComponent) {
+                        setTripCountryCode(countryComponent.short_name); // "IN" for India, "RU" for Russia
+                    }
+                }
+            } catch (error) {
+                logger.error("Error fetching country code:", error);
+            }
+        };
+
+        fetchCountryCode();
+    }, [coordinates]);
+
+
+    const fetchNearbyPlaces = async () => {
+        let placeType;
+        if (type === "hotel") {
+            placeType = "lodging"; // Google Places category for hotels
+        } else if (type === "restaurant") {
+            placeType = "restaurant";
+        } else {
+            placeType = "tourist_attraction"; // Covers general activities & attractions
+        }
+
+        try {
+            const response = await axios.get(
+                `https://maps.googleapis.com/maps/api/place/nearbysearch/json`,
+                {
+                    params: {
+                        location: `${coordinates[0]},${coordinates[1]}`,
+                        radius: 5000, // ✅ Show places within 5km radius
+                        type: placeType, // ✅ Filter places by type
+                        key: GOOGLE_API_KEY,
+                    },
+                }
+            );
+
+            if (response.data.status === "OK") {
+                setNearbyPlaces(response.data.results); // ✅ Store nearby places in state
+            } else {
+                setNearbyPlaces([]); // ✅ No results found
+            }
+        } catch (error) {
+            logger.error("Error fetching nearby places:", error);
+            setNearbyPlaces([]);
+        }
+    };
+
+    useEffect(() => {
+        fetchNearbyPlaces();
+    }, [coordinates, type]);
 
     useEffect(() => {
         Animated.timing(suggestionBoxRef, {
@@ -62,6 +131,16 @@ const SearchScreen = ({ route }) => {
             setShowSuggestions(false);
             return;
         }
+
+        let placeType;
+        if (type === "hotel") {
+            placeType = "lodging"; // Google Places category for hotels
+        } else if (type === "restaurant") {
+            placeType = "restaurant";
+        } else {
+            placeType = "tourist_attraction"; // Covers general activities & attractions
+        }
+
         try {
             const response = await axios.get(
                 `https://maps.googleapis.com/maps/api/place/autocomplete/json`,
@@ -73,6 +152,8 @@ const SearchScreen = ({ route }) => {
                         location: `${coordinates[0]},${coordinates[1]}`,
                         radius: 50000,
                         strictbounds: true,
+                        components: tripCountryCode ? `country:${tripCountryCode}` : undefined,
+                        types: placeType,
                     },
                 }
             );
@@ -81,7 +162,7 @@ const SearchScreen = ({ route }) => {
                 setSuggestions(response.data.predictions);
                 setShowSuggestions(true);
             } else {
-                setSuggestions([{ description: "No results found nearby", place_id: "not_found" }]); // ✅ Show "No results found"
+                setSuggestions([{ description: `No ${type}s found nearby`, place_id: "not_found" }]); // ✅ Show "No results found"
                 setShowSuggestions(true);
             }
         } catch (error) {
@@ -133,7 +214,7 @@ const SearchScreen = ({ route }) => {
                 setSelectedPlaceDetails(placeDetails);
             }
         } catch (error) {
-            logger.error("Error fetching place details:", error);
+            console.log("Error fetching place details:", error);
         }
     };
 
@@ -151,6 +232,8 @@ const SearchScreen = ({ route }) => {
     };
 
     const handleAddToList = () => {
+        // console.log("naresh sharma: ", selectedPlaceDetails);
+
         if (selectedPlaceDetails && coordinates.length === 2) {
             const { latitude, longitude } = selectedPlaceDetails.coordinates;
             const itineraryLat = coordinates[0]; // ✅ Extract latitude from array
@@ -181,7 +264,7 @@ const SearchScreen = ({ route }) => {
                     item,
                 },
             });
-
+            console.log("before sending item", item);
             navigation.goBack();
         } else {
             Toast.show({
@@ -247,12 +330,57 @@ const SearchScreen = ({ route }) => {
                         longitudeDelta: 0.1,
                     }}
                 >
+
                     {selectedLocation && (
                         <Marker coordinate={selectedLocation} title={selectedPlaceDetails?.title}>
                             <Image source={getMarkerImage()} style={styles.customMarker} />
                         </Marker>
                     )}
                 </MapView>
+
+                {/* Nearby Places List (Google Maps Style) */}
+                <View style={styles.bottomCardContainer}>
+                    <FlatList
+                        data={nearbyPlaces}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        keyExtractor={(item, index) => index.toString()}
+                        renderItem={({ item }) => {
+                            // Convert place type to a user-friendly name
+                            const placeType = item.types.includes("lodging") ? "Hotel" :
+                                item.types.includes("restaurant") ? "Restaurant" :
+                                    item.types.includes("tourist_attraction") ? "Activity" :
+                                        "Other"; // Fallback if type is unknown
+
+                            return (
+                                <TouchableOpacity style={styles.card} onPress={() => handlePlaceSelect(item)} activeOpacity={0.7}>
+                                    <FastImage
+                                        source={{
+                                            uri: item.photos?.[0]?.photo_reference
+                                                ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${item.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
+                                                : "https://via.placeholder.com/400",
+                                            priority: FastImage.priority.high,
+                                            cache: FastImage.cacheControl.immutable,  // Enable caching
+                                        }}
+                                        style={styles.cardImage}
+                                        resizeMode={FastImage.resizeMode.cover}
+                                    />
+
+                                    <View style={styles.cardDetails}>
+                                        <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
+                                        <Text style={styles.cardRating} numberOfLines={1}>
+                                            ⭐ {item.rating || "N/A"} ({item.user_ratings_total || 0} reviews)
+                                        </Text>
+                                        <Text style={styles.cardCategory} numberOfLines={1}>{placeType}</Text>
+                                        <Text style={styles.cardStatus}>
+                                            {item.opening_hours?.open_now ? "🟢 Open" : "🔴 Closed"}
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        }}
+                    />
+                </View>
 
                 <View style={styles.buttonContainer}>
                     <Button
@@ -329,7 +457,7 @@ const styles = StyleSheet.create({
     },
     map: {
         width: '100%',
-        height: hp(100),
+        height: hp(45),
         borderRadius: wp(2),
         marginBottom: hp(2),
     },
@@ -344,10 +472,62 @@ const styles = StyleSheet.create({
         borderBottomColor: COLORS.red,
     },
     resultText: { fontSize: hp(2.2) },
+    bottomCardContainer: {
+        position: "absolute",
+        bottom: hp(6),
+        left: 0,
+        right: 0,
+        paddingVertical: hp(1),
+        borderTopLeftRadius: wp(4),
+        borderTopRightRadius: wp(4),
+    },
+    card: {
+        marginBottom: hp(3),
+        width: wp(45),
+        height: hp(25),
+        marginHorizontal: wp(2),
+        backgroundColor: COLORS.white,
+        borderRadius: wp(3),
+        overflow: "hidden",
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 4,
+    },
+    cardImage: {
+        width: "100%",
+        height: hp(12),
+        resizeMode: "cover",
+    },
+    cardDetails: {
+        padding: wp(2),
+    },
+    cardTitle: {
+        fontSize: hp(2.1),
+        fontFamily: fontFamily.FONTS.bold,
+        color: COLORS.darkgray,
+    },
+    cardRating: {
+        fontSize: hp(1.8),
+        fontFamily: fontFamily.FONTS.Medium,
+        color: COLORS.Midgray,
+    },
+    cardCategory: {
+        fontSize: hp(2),
+        fontFamily: fontFamily.FONTS.bold,
+        color: COLORS.Midgray,
+        paddingBottom: hp(0.7)
+    },
+    cardStatus: {
+        fontSize: hp(1.8),
+        fontFamily: fontFamily.FONTS.Medium,
+        color: COLORS.darkgray
+    },
+
     /* Fixed Bottom Button */
     buttonContainer: {
         position: "absolute",
-        bottom: hp(4), // Position slightly above screen bottom
+        bottom: hp(3), // Position slightly above screen bottom
         width: "100%",
         paddingHorizontal: wp(6),
     },

@@ -13,6 +13,7 @@ const Button = ({ title, onPress, disabled, loading }) => {
             style={styles.button}
             onPress={onPress}
             disabled={disabled || loading}
+            activeOpacity={0.5}
         >
             {loading ? (
                 <ActivityIndicator color={COLORS.white} size="large" />
