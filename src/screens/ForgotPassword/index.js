@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
-        marginTop: hp(5),
+        marginTop: Platform.OS === "ios" ? hp(0) : hp(5),
         paddingHorizontal: wp(4),
         alignItems: 'center',
     },

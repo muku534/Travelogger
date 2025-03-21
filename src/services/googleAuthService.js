@@ -1,3 +1,4 @@
+import { GOOGLE_CLOUD_API } from "@env";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { googleLogin } from './authService';
 import { storeDataInAsyncStorage } from '../utils/Helper';
@@ -10,7 +11,7 @@ export const signInWithGoogle = async (navigation, dispatch) => {
 
         // Configure Google Sign-In
         GoogleSignin.configure({
-            webClientId: '181504532584-8o1jdaa0cn6ves6tb1oj1p74u6hc85kc.apps.googleusercontent.com',
+            webClientId: GOOGLE_CLOUD_API,
             offlineAccess: true,
             prompt: 'select_account', // Always prompt to select an account
             scopes: ['profile', 'email'],

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Image, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "./Pixel/Index";
 import { COLORS, Images, SVGS } from "../../constants";
 import { useNavigation } from "@react-navigation/native";
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         paddingHorizontal: wp(3),
-        marginTop: hp(5),
+        marginTop: Platform.OS === "ios" ? hp(0) : hp(5),
         paddingBottom: hp(1),
         backgroundColor: COLORS.white,
     },

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "./Pixel/Index";
 import { COLORS, fontFamily, Images, SVGS } from "../../constants";
@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: wp(3),
         backgroundColor: COLORS.white,
-        paddingTop: hp(6),
+        paddingTop: Platform.OS === "ios" ? hp(0) : hp(6),
     },
     headerTitle: {
         fontSize: wp(5),

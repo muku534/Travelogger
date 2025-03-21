@@ -56,17 +56,12 @@ const rootReducer = (state = initialState, action) => {
 
 
         case ADD_TRIP_DAY_ITEM:
-            console.log("🟢 ADD_TRIP_DAY_ITEM Action Dispatched");
-            console.log("Incoming Payload:", action.payload);
-
             return {
                 ...state,
                 tripDetails: {
                     ...state.tripDetails,
                     tripDays: state.tripDetails.tripDays.map((day, index) => {
                         if (index === action.payload.dayIndex) {
-                            console.log("🔹 Existing Day Before Update:", day);
-
                             const updatedDay = { ...day };
 
                             if (updatedDay.sections) {
@@ -86,17 +81,28 @@ const rootReducer = (state = initialState, action) => {
                                         action.payload.item
                                     ],
                                 };
-                                console.log("✅ Updated Day (Sections Mode):", updatedDay);
                             } else {
                                 // Otherwise, use `items` (for saved itineraries)
                                 updatedDay.items = [...(updatedDay.items || []), action.payload.item];
-                                console.log("✅ Updated Day (Items Mode):", updatedDay);
                             }
 
                             return updatedDay;
                         }
                         return day;
                     }),
+                },
+            };
+
+        case CLEAR_TRIP_DETAILS:
+            return {
+                ...state,
+                tripDetails: {
+                    itineraryId: null, // ✅ Reset itineraryId
+                    destination: '',
+                    startDate: null,
+                    endDate: null,
+                    selectedLocation: [],
+                    tripDays: [],
                 },
             };
 

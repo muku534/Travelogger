@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from '../../components/Pixel/Index';
 import { COLORS, fontFamily, Images, SVGS } from '../../../constants';
+import { Platform } from 'react-native';
 
 
 const AIPlainIntro = ({ navigation }) => {
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: wp(3),
     justifyContent: 'flex-start', // Move text slightly up
-    marginTop: hp(8), // Adjusted top margin
+    marginTop: Platform.OS === "ios" ? hp(0) : hp(8), // Adjusted top margin
   },
   backButton: {
     position: 'absolute',

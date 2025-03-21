@@ -64,7 +64,6 @@ const Login = ({ navigation }) => {
             // Navigate to the home or dashboard screen
             navigation.reset({ index: 0, routes: [{ name: 'TabStack' }] });
         } catch (error) {
-            console.log("error during the login", error)
             Toast.show({
                 type: 'error',
                 text1: 'Login Failed',

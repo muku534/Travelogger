@@ -209,12 +209,11 @@ const SearchScreen = ({ route }) => {
                         ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${details.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
                         : "https://via.placeholder.com/400",
                 };
-                console.log("placeDetails", placeDetails)
                 setSelectedLocation({ latitude: lat, longitude: lng });
                 setSelectedPlaceDetails(placeDetails);
             }
         } catch (error) {
-            console.log("Error fetching place details:", error);
+            logger.error("Error fetching place details:", error);
         }
     };
 
@@ -232,7 +231,6 @@ const SearchScreen = ({ route }) => {
     };
 
     const handleAddToList = () => {
-        // console.log("naresh sharma: ", selectedPlaceDetails);
 
         if (selectedPlaceDetails && coordinates.length === 2) {
             const { latitude, longitude } = selectedPlaceDetails.coordinates;
@@ -264,7 +262,6 @@ const SearchScreen = ({ route }) => {
                     item,
                 },
             });
-            console.log("before sending item", item);
             navigation.goBack();
         } else {
             Toast.show({

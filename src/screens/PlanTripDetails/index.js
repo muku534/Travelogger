@@ -10,8 +10,10 @@ import Toast from "react-native-toast-message";
 import { createItineraries, ShareItinerary, updateItineraryById } from '../../services/planTripService';
 import logger from '../../utils/logger';
 import RBSheet from 'react-native-raw-bottom-sheet';
-import { DELETE_TRIP_DAY_ITEM } from '../../redux/Actions';
+import { CLEAR_TRIP_DETAILS, DELETE_TRIP_DAY_ITEM } from '../../redux/Actions';
 import FastImage from 'react-native-fast-image';
+import { BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 const PlanTripDetails = ({ navigation, route }) => {
     const refRBSheet = useRef(null); // Bottom Sheet Ref
@@ -49,7 +51,6 @@ const PlanTripDetails = ({ navigation, route }) => {
             const dateObj = new Date(dateString);
             return dateObj.toISOString().split("T")[0]; // Convert to YYYY-MM-DD
         };
-        console.log("before sending", tripDays)
 
         // Format itinerary data for API
         const itineraryData = {
@@ -71,7 +72,6 @@ const PlanTripDetails = ({ navigation, route }) => {
                 .filter((day) => day.locations.length > 0), // ✅ Keeps only days with at least one valid location
         };
 
-        console.log("before sharing itineray", itineraryData)
         try {
             await ShareItinerary(itineraryData); // Call API function
 
@@ -91,7 +91,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                 text1: "Error",
                 text2: error.message || "Failed to send itinerary.",
             });
-            console.error("Email send error:", error);
+            logger.error("Email send error:", error);
         } finally {
             setLoading(false); // Hide loading indicator
         }
@@ -102,7 +102,6 @@ const PlanTripDetails = ({ navigation, route }) => {
         setModalVisible((prevVisible) => !prevVisible);
         setEmailError(""); // Clear error when closing modal
     };
-
 
     const handleToggle = (tab) => {
         setActiveTab(tab);
@@ -201,7 +200,7 @@ const PlanTripDetails = ({ navigation, route }) => {
 
                 // Skip if either location is missing coordinates
                 if (!origin || !destination || !origin.latitude || !origin.longitude || !destination.latitude || !destination.longitude) {
-                    logger.warn(`❌ Missing coordinates for: ${originName} or ${destinationName}`);
+                    // logger.warn(`❌ Missing coordinates for: ${originName} or ${destinationName}`);
                     continue;
                 }
 
@@ -227,19 +226,27 @@ const PlanTripDetails = ({ navigation, route }) => {
         navigation.navigate("SearchScreen", { type, dayIndex, isSearchOnly: false, coordinates });
     };
 
+    const formatDisplayDate = (inputDate) => {
+        const date = new Date(inputDate);
+
+        // Format the date as "Mon Mar 22 2025"
+        const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+        return date.toLocaleDateString('en-US', options);
+    };
+
     const formatDate = (inputDate) => {
         const date = new Date(inputDate);
+
+        // Extract year, month, and day in the local time zone
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // ✅ Ensure two-digit month
-        const day = String(date.getDate()).padStart(2, '0'); // ✅ Ensure two-digit day
-        return `${year}-${month}-${day}`;
+        const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`; // Return in YYYY-MM-DD format
     };
 
     const handleSaveItinerary = async () => {
-        const hotels = tripDays[0]
-        console.log("before sending hotels", hotels)
         try {
-            // console.log("before sending  tripDays", tripDays)
             const itineraryData = {
                 itinerary: {
                     userId: userData.userId,
@@ -396,9 +403,6 @@ const PlanTripDetails = ({ navigation, route }) => {
                 }
             };
 
-            console.log("Saving Itinerary - ID:", itineraryId);
-            console.log("Saving Itinerary - Data:", JSON.stringify(itineraryData, null, 2))
-
             if (itineraryId) {
                 itineraryData.itinerary.updatedAt = new Date().toISOString();
                 await updateItineraryById(itineraryId, itineraryData);
@@ -415,6 +419,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                     text2: "Itinerary saved successfully!",
                 });
             }
+            dispatch({ type: CLEAR_TRIP_DETAILS });
 
             navigation.navigate("TabStack");
         } catch (error) {
@@ -430,7 +435,6 @@ const PlanTripDetails = ({ navigation, route }) => {
 
     const handleItemPress = (item, dayIndex) => {
         setSelectedItem({ ...item, dayIndex }); // Store item and its day index
-        console.log("Selected Item for deletion:", { ...item, dayIndex });
         refRBSheet.current.open();  // Open the bottom sheet
     };
 
@@ -453,12 +457,10 @@ const PlanTripDetails = ({ navigation, route }) => {
 
             switch (actionType) {
                 case "viewPlace":
-                    console.log(`Opening Place: https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
                     Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
                     break;
 
                 case "directions":
-                    console.log(`Getting Directions: https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`);
                     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`);
                     break;
 
@@ -476,7 +478,6 @@ const PlanTripDetails = ({ navigation, route }) => {
                         websiteUrl = `https://${websiteUrl}`;
                     }
 
-                    console.log("Opening Website:", websiteUrl);
                     Linking.openURL(websiteUrl);
                     break;
 
@@ -489,15 +490,10 @@ const PlanTripDetails = ({ navigation, route }) => {
         }
     };
 
-
-
     const handleDeleteItem = () => {
         if (!selectedItem || selectedItem.dayIndex === undefined) {
-            console.log("No valid item selected for deletion.");
             return;
         }
-
-        console.log("Deleting item from Day Index:", selectedItem.dayIndex, "Item ID:", selectedItem.id);
 
         dispatch({
             type: DELETE_TRIP_DAY_ITEM,
@@ -506,8 +502,6 @@ const PlanTripDetails = ({ navigation, route }) => {
                 itemId: selectedItem.id,        // Identify the correct item
             },
         });
-
-        console.log(`Deleted item with ID: ${selectedItem.id} from dayIndex: ${selectedItem.dayIndex}`);
 
         // Close the bottom sheet
         refRBSheet.current.close();
@@ -533,6 +527,28 @@ const PlanTripDetails = ({ navigation, route }) => {
         }
     };
 
+    // Function to handle back navigation and clear Redux
+    const handleGoBack = () => {
+        dispatch({ type: CLEAR_TRIP_DETAILS }); // ✅ Clears tripDetails Redux state
+        navigation.goBack();
+    };
+
+    // Handle Android device back button
+    useFocusEffect(
+        React.useCallback(() => {
+            const onBackPress = () => {
+                handleGoBack();
+                return true; // Prevents default behavior
+            };
+
+            const backHandler = BackHandler.addEventListener(
+                "hardwareBackPress",
+                onBackPress
+            );
+
+            return () => backHandler.remove(); // ✅ Correct way to remove listener
+        }, [])
+    );
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
@@ -598,7 +614,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                     )}
 
                     {/* Back Button */}
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
                         <Ionicons
                             name="arrow-back"
                             size={hp(3)}
@@ -664,7 +680,6 @@ const PlanTripDetails = ({ navigation, route }) => {
                                 activities = item.items.filter((place) => place.type?.toLowerCase() === "activity");
                                 restaurants = item.items.filter((place) => place.type?.toLowerCase() === "restaurant");
 
-                                console.log("items", item.items)
                             } else if (item?.sections) {
                                 // ✅ Handles `sections` format
                                 hotels = item.sections.hotels || [];
@@ -680,7 +695,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                                         style={styles.dayHeader}
                                     >
                                         <View>
-                                            <Text style={styles.dayTitle}>Day {index + 1}: {item.day}</Text>
+                                            <Text style={styles.dayTitle}>Day {index + 1}: {formatDisplayDate(item.day)}</Text>
                                             <Text style={{ color: COLORS.red, fontFamily: fontFamily.FONTS.Medium, fontSize: hp(1.7) }}>
                                                 ${[...hotels, ...activities, ...restaurants].reduce((total, place) => {
                                                     const price = place.price ? parseFloat(place.price.toString().replace('$', '')) : 0;
@@ -731,18 +746,11 @@ const PlanTripDetails = ({ navigation, route }) => {
 
                                                         {hotelIndex < hotels.length - 1 && (
                                                             <View style={styles.distanceContainer}>
-                                                                {console.log("Hotel Object:", hotel)}
-                                                                {console.log("Hotels Array:", hotels)}
-                                                                {console.log("Next Hotel Object:", hotels[hotelIndex + 1])}
 
                                                                 {/* Ensure we use either hotel.name or hotel.title */}
                                                                 {(() => {
                                                                     const currentHotelName = hotel.name || hotel.title || "Unnamed Hotel";
                                                                     const nextHotelName = hotels[hotelIndex + 1]?.name || hotels[hotelIndex + 1]?.title || "Unnamed Hotel";
-
-                                                                    console.log("Current Hotel:", currentHotelName);
-                                                                    console.log("Next Hotel:", nextHotelName);
-                                                                    console.log("Distance Info:", distances[`${currentHotelName}-${nextHotelName}`]);
 
                                                                     return (
                                                                         <>
@@ -801,9 +809,6 @@ const PlanTripDetails = ({ navigation, route }) => {
 
                                                         {activityIndex < activities.length - 1 && (
                                                             <View style={styles.distanceContainer}>
-                                                                {console.log("activity Object:", activity)}
-                                                                {console.log("activities Array:", activities)}
-                                                                {console.log("Next activities Object:", activities[activityIndex + 1])}
 
                                                                 {/* Ensure we use either hotel.name or hotel.title */}
                                                                 {(() => {

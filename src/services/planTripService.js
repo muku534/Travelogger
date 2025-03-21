@@ -39,10 +39,8 @@ export const updateItineraryById = async (itineraryId, itineraryData) => {
 export const ShareItinerary = async (itineraryData) => {
     try {
         const response = await api.post('/email/send-itinerary', itineraryData);
-        console.log("share api response", response)
         return response.data;
     } catch (error) {
-        console.log("error sending suring the share", error)
         throw error.response?.data || { message: "Somthing went wrong during share itinerary" };
     }
 };

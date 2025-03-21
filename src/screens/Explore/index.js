@@ -1,6 +1,6 @@
 import { GOOGLE_API_KEY } from "@env";
 import React, { useCallback, useRef, useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, FlatList, TextInput, StyleSheet, SafeAreaView, StatusBar, Image, Animated, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, TextInput, StyleSheet, SafeAreaView, StatusBar, Image, Animated, Alert, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import { COLORS, fontFamily, Images } from '../../../constants';
@@ -235,7 +235,7 @@ export default Explore;
 
 
 const styles = StyleSheet.create({
-    container: { flex: 1, marginTop: hp(6.2), backgroundColor: COLORS.white },
+    container: { flex: 1, marginTop: Platform.OS === "ios" ? hp(0) : hp(6.2), backgroundColor: COLORS.white },
     headerContainer: {
         paddingHorizontal: wp(3),
         flexDirection: "row",

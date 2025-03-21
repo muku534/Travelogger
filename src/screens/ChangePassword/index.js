@@ -164,21 +164,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.white,
     },
-    headerContainer: {
-        marginTop: hp(7),
-        marginHorizontal: wp(4),
-        marginBottom: hp(3),
-        flexDirection: "row",
-        alignItems: 'center',
-    },
-    backButton: {
-        marginRight: wp(2),
-    },
-    header: {
-        fontSize: wp(5),
-        color: COLORS.darkgray,
-        fontFamily: fontFamily.FONTS.bold,
-    },
     inputContainer: {
         width: "100%",
         flexDirection: 'row',

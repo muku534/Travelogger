@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, StyleSheet, SafeAreaView, StatusBar, Animated, FlatList } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, StyleSheet, SafeAreaView, StatusBar, Animated, FlatList, Platform } from "react-native";
 import DatePicker from "react-native-date-picker";
 import LinearGradient from "react-native-linear-gradient";
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
@@ -11,7 +11,7 @@ import Toast from 'react-native-toast-message';
 import usePlaceSearch from "../../hooks/usePlaceSearch";
 import LoadingScreen from "../../components/LoadingScreen";
 import { SET_TRIP_DETAILS } from "../../redux/Actions";
-import logger from '../../utils/logger'
+import logger from "../../utils/logger";
 
 const AIPlanTrip = ({ navigation }) => {
     const { destination, suggestions, showSuggestions, placeImages, selectedLocation, handleDestinationChange, handlePlaceSelect } = usePlaceSearch();
@@ -155,7 +155,7 @@ const AIPlanTrip = ({ navigation }) => {
 
         } catch (error) {
             const formattedError = JSON.stringify(error?.response?.data || error, null, 2);
-            console.error("API Error:", formattedError);
+            logger.error("API Error:", formattedError);
             // console.error("Error generating itinerary:", error?.response || error);
             Toast.show({
                 type: "error",
@@ -350,7 +350,7 @@ export default AIPlanTrip;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        marginTop: hp(2),
+        marginTop: Platform.OS === "ios" ? hp(0) : hp(2),
         paddingHorizontal: wp(3),
         backgroundColor: COLORS.white,
     },

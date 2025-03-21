@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, Keyboard, ToastAndroid, ScrollView, TouchableWithoutFeedback } from 'react-native';
+import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, TouchableWithoutFeedback, ScrollView, Keyboard } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import { COLORS, fontFamily } from "../../../constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Button from '../../components/Button';
 import OTPVerification from '../../../assets/icons/OTP_Verification.svg'
-import Toast from "react-native-toast-message";
+import Toast from 'react-native-toast-message';
 import { verifyOTP } from '../../services/authService';
 
 const OtpVerification = ({ navigation, route }) => {
@@ -39,74 +39,26 @@ const OtpVerification = ({ navigation, route }) => {
     };
 
     const handleSubmitOTP = async () => {
-        Keyboard.dismiss();
         const OTP = otp.join("");
 
         if (OTP.length !== 6) {
-            console.log("Invalid OTP length:", OTP.length);
-            ToastAndroid.showWithGravity(
-                'Enter the 6-digit OTP',
-                ToastAndroid.SHORT,
-                ToastAndroid.TOP,
-            );
+            Toast.show({ type: "error", text1: "Invalid OTP", text2: "Enter the 6-digit OTP." });
             return;
         }
 
+        setLoading(true);
         try {
-            setLoading(true);
-            const response = await verifyOTP(email, OTP);
-
-            console.log("API Response:", response); // ✅ Debugging Response
-
-            // ✅ Fix: Use response.statusCode instead of response.status
-            if (response?.statusCode === 200) {
-                console.log("OTP Verified! Redirecting to Create Password...");
-                ToastAndroid.showWithGravity(
-                    'OTP Verified! Redirecting...',
-                    ToastAndroid.SHORT,
-                    ToastAndroid.TOP,
-                );
-
-                setTimeout(() => {
-                    navigation.reset({
-                        index: 0,
-                        routes: [{ name: 'CreatePassword', params: { email } }],
-                    });
-                }, 1000);
-            } else {
-                console.log("Unexpected Response:", response);
-                const errorMessage = response?.message || "Something went wrong!";
-                ToastAndroid.showWithGravity(
-                    errorMessage,
-                    ToastAndroid.SHORT,
-                    ToastAndroid.TOP,
-                );
-            }
+            await verifyOTP(email, OTP);
+            Toast.show({ type: "success", text1: "OTP Verified", text2: "You can now create a new password." });
+            setTimeout(() => {
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'CreatePassword', params: { email } }], // ✅ Correct way to pass email
+                });
+            }, 1000);
         } catch (error) {
-            console.log("OTP Verification Failed:", error);
-
-            if (response?.statusCode === 400) {
-                ToastAndroid.showWithGravity(
-                    'Invalid OTP. Please try again',
-                    ToastAndroid.SHORT,
-                    ToastAndroid.TOP,
-                );
-            } else if (response?.status === 500 && response?.data?.message.includes("Invalid or expired OTP")) {
-                ToastAndroid.showWithGravity(
-                    'Invalid or expired OTP',
-                    ToastAndroid.SHORT,
-                    ToastAndroid.TOP,
-                );
-            }
-            else {
-                ToastAndroid.showWithGravity(
-                    'Something went wrong. Try again later!',
-                    ToastAndroid.SHORT,
-                    ToastAndroid.TOP,
-                );
-            }
+            Toast.show({ type: "error", text1: "Verification Failed", text2: error.message || "Invalid OTP." });
         }
-
         setLoading(false);
     };
 

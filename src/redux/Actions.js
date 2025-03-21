@@ -10,6 +10,7 @@ export const LOGOUT = 'LOGOUT';
 // Temporary Itinerary Actions
 export const SET_TRIP_DETAILS = 'SET_TRIP_DETAILS';
 export const ADD_TRIP_DAY_ITEM = 'ADD_TRIP_DAY_ITEM';
+export const CLEAR_TRIP_DETAILS = 'CLEAR_TRIP_DETAILS';
 export const DELETE_TRIP_DAY_ITEM = 'DELETE_TRIP_DAY_ITEM';
 
 //Itineraries
@@ -64,6 +65,10 @@ export const addTripDayItem = (dayIndex, item) => ({
     type: ADD_TRIP_DAY_ITEM,
     payload: { dayIndex, item },
 });
+
+export const clearTripDetails = () => ({
+    type: CLEAR_TRIP_DETAILS
+})
 
 export const deleteTripDayItem = (dayIndex, itemId) => ({
     type: DELETE_TRIP_DAY_ITEM,

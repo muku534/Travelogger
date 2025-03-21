@@ -12,13 +12,15 @@ import { createItineraries, ShareItinerary, updateItineraryById } from '../../se
 import LinearGradient from 'react-native-linear-gradient';
 import logger from '../../utils/logger';
 import RBSheet from 'react-native-raw-bottom-sheet';
-import { DELETE_TRIP_DAY_ITEM } from '../../redux/Actions';
+import { CLEAR_TRIP_DETAILS, DELETE_TRIP_DAY_ITEM } from '../../redux/Actions';
+import { BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import FastImage from 'react-native-fast-image';
 
 const AiPlanTripDetails = ({ navigation }) => {
     const refRBSheet = useRef(null); // Bottom Sheet Ref
     const dispatch = useDispatch();
     const { itineraryId, destination, startDate, endDate, tripImg, coordinates, tripDays } = useSelector(state => state.tripDetails);
-    // console.log("new iteranry: ", itineraryId, destination, startDate, endDate, tripImg, coordinates, tripDays);
     const [expanded, setExpanded] = useState(null);
     const [activeTab, setActiveTab] = useState('List');
     const sliderAnim = useRef(new Animated.Value(wp(12))).current; // Start at 'List' position
@@ -81,12 +83,10 @@ const AiPlanTripDetails = ({ navigation }) => {
             return dateObj.toISOString().split("T")[0]; // Convert to YYYY-MM-DD format
         };
 
-        // console.log("Before sending:", tripDays);
-
         // Ensure tripDays is valid
         if (!tripDays || tripDays.length === 0) {
             setLoading(false);
-            console.error("Error: No itinerary data found.");
+            logger.error("Error: No itinerary data found.");
             Toast.show({
                 type: "error",
                 text1: "Error",
@@ -123,12 +123,8 @@ const AiPlanTripDetails = ({ navigation }) => {
                 .filter((day) => day.locations.length > 0), // Keep only days with locations
         };
 
-        // console.log("Formatted itinerary data:", JSON.stringify(itineraryData, null, 2));
-        // console.log("Formatted itinerary data:", JSON.stringify(itineraryData, null, 2));
-
         try {
             const response = await ShareItinerary(itineraryData);
-            // console.log("API Response:", response);
 
             // Show success toast
             Toast.show({
@@ -140,7 +136,7 @@ const AiPlanTripDetails = ({ navigation }) => {
             toggelModel(); // Close modal after success
             setEmail(""); // Reset email input
         } catch (error) {
-            console.error("API Error:", error.response || error);
+            logger.error("API Error:", error.response || error);
 
             // Show error toast
             Toast.show({
@@ -149,7 +145,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                 text2: error.message || "Failed to send itinerary.",
             });
         } finally {
-            console.log("Resetting loading state...");
+            logger.log("Resetting loading state...");
             setLoading(false); // Ensure loading is hidden
         }
     };
@@ -251,7 +247,6 @@ const AiPlanTripDetails = ({ navigation }) => {
             }
 
             if (!places || places.length < 2) continue;
-            console.log("places", places)
             for (let j = 0; j < places.length - 1; j++) {
                 let origin = getCoordinates(places[j]);
                 let destination = getCoordinates(places[j + 1]);
@@ -261,7 +256,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                 const destinationName = places[j + 1]?.name || places[j + 1]?.title || "Unnamed Place";
 
                 if (!origin || !destination || !origin.latitude || !origin.longitude || !destination.latitude || !destination.longitude) {
-                    console.log(`Missing coordinates for ${originName} or ${destinationName}`);
+                    logger.info(`Missing coordinates for ${originName} or ${destinationName}`);
                     continue;
                 }
 
@@ -289,12 +284,23 @@ const AiPlanTripDetails = ({ navigation }) => {
         navigation.navigate("SearchScreen", { type, dayIndex, isSearchOnly: false, coordinates: fallbackCoordinates });
     };
 
+    const formatDisplayDate = (inputDate) => {
+        const date = new Date(inputDate);
+
+        // Format the date as "Mon Mar 22 2025"
+        const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+        return date.toLocaleDateString('en-US', options);
+    };
+
     const formatDate = (inputDate) => {
         const date = new Date(inputDate);
+
+        // Extract year, month, and day in the local time zone
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // ✅ Ensure two-digit month
-        const day = String(date.getDate()).padStart(2, '0'); // ✅ Ensure two-digit day
-        return `${year}-${month}-${day}`;
+        const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`; // Return in YYYY-MM-DD format
     };
 
     const handleSaveItinerary = async () => {
@@ -482,11 +488,9 @@ const AiPlanTripDetails = ({ navigation }) => {
                 };
                 // Format JSON with indentation for easy copy-paste
                 const formattedItinerary = JSON.stringify(itineraryData, null, 4);
-                console.log("===== COPY & PASTE ITINERARY DATA BELOW =====\n", formattedItinerary);
 
                 itineraryData.itinerary.updatedAt = new Date().toISOString();
                 const response = await updateItineraryById(itineraryId, itineraryData);
-                console.log("api response for updation", response)
                 Toast.show({
                     type: "success",
                     text1: "Success",
@@ -671,10 +675,8 @@ const AiPlanTripDetails = ({ navigation }) => {
                 };
                 // Format JSON with indentation for easy copy-paste
                 const formattedItinerary = JSON.stringify(itineraryData, null, 4);
-                console.log("===== COPY & PASTE ITINERARY DATA BELOW =====\n", formattedItinerary);
 
                 const response = await createItineraries(itineraryData);
-                console.log("api response for creation", response)
                 Toast.show({
                     type: "success",
                     text1: "Success",
@@ -698,7 +700,6 @@ const AiPlanTripDetails = ({ navigation }) => {
 
     const handleItemPress = (item, dayIndex) => {
         setSelectedItem({ ...item, dayIndex }); // Store item and its day index
-        logger.info("Selected Item for deletion:", { ...item, dayIndex });
         refRBSheet.current.open();  // Open the bottom sheet
     };
 
@@ -721,12 +722,10 @@ const AiPlanTripDetails = ({ navigation }) => {
 
             switch (actionType) {
                 case "viewPlace":
-                    console.log(`Opening Place: https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
                     Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
                     break;
 
                 case "directions":
-                    console.log(`Getting Directions: https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`);
                     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`);
                     break;
 
@@ -744,7 +743,6 @@ const AiPlanTripDetails = ({ navigation }) => {
                         websiteUrl = `https://${websiteUrl}`;
                     }
 
-                    console.log("Opening Website:", websiteUrl);
                     Linking.openURL(websiteUrl);
                     break;
 
@@ -795,6 +793,29 @@ const AiPlanTripDetails = ({ navigation }) => {
                 return Images.hotelMarker; // A fallback icon
         }
     };
+
+    // Function to handle back navigation and clear Redux
+    const handleGoBack = () => {
+        dispatch({ type: CLEAR_TRIP_DETAILS }); // ✅ Clears tripDetails Redux state
+        navigation.goBack();
+    };
+
+    // Handle Android device back button
+    useFocusEffect(
+        React.useCallback(() => {
+            const onBackPress = () => {
+                handleGoBack();
+                return true; // Prevents default behavior
+            };
+
+            const backHandler = BackHandler.addEventListener(
+                "hardwareBackPress",
+                onBackPress
+            );
+
+            return () => backHandler.remove(); // ✅ Correct way to remove listener
+        }, [])
+    );
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
@@ -861,8 +882,6 @@ const AiPlanTripDetails = ({ navigation }) => {
                             })}
 
                         </MapView>
-
-
                     )}
 
                     {/* Back Button */}
@@ -964,7 +983,7 @@ const AiPlanTripDetails = ({ navigation }) => {
                                         style={styles.dayHeader}
                                     >
                                         <View>
-                                            <Text style={styles.dayTitle}>Day {index + 1}: {item.day}</Text>
+                                            <Text style={styles.dayTitle}>Day {index + 1}: {formatDisplayDate(item.day)}</Text>
                                             <Text style={{ color: COLORS.RoyalBlue, fontFamily: fontFamily.FONTS.Medium, fontSize: hp(1.7) }}>
                                                 ${[...hotels, ...activities, ...restaurants].reduce((total, place) => {
                                                     const price = place.price ? parseFloat(place.price.toString().replace('$', '')) : 0;
@@ -985,8 +1004,12 @@ const AiPlanTripDetails = ({ navigation }) => {
                                                     <View >
                                                         <View style={styles.placeContainer}>
                                                             <View style={styles.imageContainer}>
-                                                                <Image
-                                                                    source={{ uri: hotel.image || (hotel.photos?.length > 0 ? hotel.photos[0].url : "fallback-image-url") }}
+                                                                <FastImage
+                                                                    source={{
+                                                                        uri: hotel.image || (hotel.photos?.length > 0 ? hotel.photos[0].url : "fallback-image-url"),
+                                                                        priority: FastImage.priority.high,
+                                                                        cache: FastImage.cacheControl.immutable
+                                                                    }}
                                                                     style={styles.placeImage}
                                                                 />
 
@@ -1042,8 +1065,12 @@ const AiPlanTripDetails = ({ navigation }) => {
                                                     <View >
                                                         <View style={styles.placeContainer}>
                                                             <View style={styles.imageContainer}>
-                                                                <Image
-                                                                    source={{ uri: activity.image || (activity.photos?.length > 0 ? activity.photos[0].url : "fallback-image-url") }}
+                                                                <FastImage
+                                                                    source={{
+                                                                        uri: activity.image || (activity.photos?.length > 0 ? activity.photos[0].url : "fallback-image-url"),
+                                                                        priority: FastImage.priority.high,
+                                                                        cache: FastImage.cacheControl.immutable
+                                                                    }}
                                                                     style={styles.placeImage}
                                                                 />
 
@@ -1070,16 +1097,11 @@ const AiPlanTripDetails = ({ navigation }) => {
 
                                                         {activityIndex < activities.length - 1 && (
                                                             <View style={styles.distanceContainer}>
-                                                                {/* {console.log("activities Object:", activity)}
-                                                                {console.log("activities Array:", activities)}
-                                                                {console.log("Next activities Object:", activities[activityIndex + 1])} */}
+                                                              
                                                                 {(() => {
                                                                     const currentActivityName = activity.name || activity.title || "Unnamed Activity";
                                                                     const nextActivityName = activities[activityIndex + 1]?.name || activities[activityIndex + 1]?.title || "Unnamed Activity";
 
-                                                                    // console.log("Current activities:", currentActivityName);
-                                                                    // console.log("Next activities:", nextActivityName);
-                                                                    // console.log("Distance Info:", distances[`${currentActivityName}-${nextActivityName}`]);
                                                                     return (
                                                                         <>
                                                                             <Text style={styles.distanceText}>
@@ -1106,10 +1128,15 @@ const AiPlanTripDetails = ({ navigation }) => {
                                                     <View>
                                                         <View style={styles.placeContainer}>
                                                             <View style={styles.imageContainer}>
-                                                                <Image
-                                                                    source={{ uri: restaurant.image || (restaurant.photos?.length > 0 ? restaurant.photos[0].url : "fallback-image-url") }}
+                                                                <FastImage
+                                                                    source={{
+                                                                        uri: restaurant.image || (restaurant.photos?.length > 0 ? restaurant.photos[0].url : "fallback-image-url"),
+                                                                        priority: FastImage.priority.high,
+                                                                        cache: FastImage.cacheControl.immutable
+                                                                    }}
                                                                     style={styles.placeImage}
                                                                 />
+
 
                                                                 {/* <Image source={{ uri: restaurant.image || "" }} style={styles.placeImage} /> */}
                                                                 <View style={styles.badge}>
