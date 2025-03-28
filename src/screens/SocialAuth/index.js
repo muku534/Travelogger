@@ -14,13 +14,6 @@ const SocialAuth = ({ navigation }) => {
     const dispatch = useDispatch();
     const insets = useSafeAreaInsets(); // Get safe area insets for iOS
 
-    useEffect(() => {
-        if (Platform.OS === 'android') {
-            StatusBar.setTranslucent(true);
-            StatusBar.setBackgroundColor('transparent');
-        }
-    }, []);
-
     return (
         <View style={{ flex: 1, backgroundColor: COLORS.white }}>
             <StatusBar

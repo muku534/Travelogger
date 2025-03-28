@@ -1,4 +1,4 @@
-import { GOOGLE_CLOUD_API } from "@env";
+import { WEB_CLIENT_ID, IOS_CLIENT_ID } from "@env";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { googleLogin } from './authService';
 import { storeDataInAsyncStorage } from '../utils/Helper';
@@ -11,7 +11,8 @@ export const signInWithGoogle = async (navigation, dispatch) => {
 
         // Configure Google Sign-In
         GoogleSignin.configure({
-            webClientId: GOOGLE_CLOUD_API,
+            webClientId: WEB_CLIENT_ID,
+            iosClientId: IOS_CLIENT_ID,
             offlineAccess: true,
             prompt: 'select_account', // Always prompt to select an account
             scopes: ['profile', 'email'],
@@ -19,13 +20,9 @@ export const signInWithGoogle = async (navigation, dispatch) => {
 
         // Ensure Google Play Services are available
         await GoogleSignin.hasPlayServices();
-
-        // Sign out first to always show "Select Account" screen
         await GoogleSignin.signOut();
 
-        // Now proceed with sign-in
         const userInfo = await GoogleSignin.signIn();
-        const { idToken } = await GoogleSignin.getTokens();
 
         // Show toast message before starting the sign-in process
         Toast.show({
@@ -35,6 +32,8 @@ export const signInWithGoogle = async (navigation, dispatch) => {
             visibilityTime: 2000, // Show for 2 seconds
             autoHide: true,
         });
+
+        const { idToken } = await GoogleSignin.getTokens();
         // Send token to backend
         const response = await googleLogin({ idToken });
 
@@ -55,6 +54,7 @@ export const signInWithGoogle = async (navigation, dispatch) => {
             });
             navigation.navigate("Login")
         } else {
+            logger.error("Google Sign-In Error:", response);
             Toast.show({
                 type: 'error',
                 text1: 'Authentication Failed',
@@ -67,5 +67,6 @@ export const signInWithGoogle = async (navigation, dispatch) => {
             text1: 'Google Sign-In Failed',
             text2: "Something went wrong!"
         });
+        logger.error("Google Sign-In Error:", error);
     }
 };

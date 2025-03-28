@@ -2,6 +2,38 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+
+	<!-- Google Sign-In Configuration -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.669615181991-4o64q1n1i8vk60fqaf67a1ov22qncp3l</string>
+            </array>
+        </dict>
+    </array>
+
+    <key>GIDClientID</key>
+    <string>669615181991-4o64q1n1i8vk60fqaf67a1ov22qncp3l.apps.googleusercontent.com</string>
+
+    <key>GIDRedirectURI</key>
+    <string>com.googleusercontent.apps.669615181991-4o64q1n1i8vk60fqaf67a1ov22qncp3l:/oauth2redirect/google</string>
+
+    <!-- Other necessary permissions & configurations -->
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>googlechrome</string>
+        <string>comgooglemaps</string>
+        <string>google</string>
+        <string>com.googleusercontent.apps.669615181991-4o64q1n1i8vk60fqaf67a1ov22qncp3l</string>
+    </array>
+
+	<key>GoogleMapsAPIKey</key>
+	<string>AIzaSyA_YWerZUbcdiqU23lJkOKzK-3GSgk94v4</string>
+
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
@@ -26,14 +58,13 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
@@ -48,5 +79,63 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>AntDesign.ttf</string>
+		<string>Entypo.ttf</string>
+		<string>EvilIcons.ttf</string>
+		<string>Feather.ttf</string>
+		<string>FontAwesome.ttf</string>
+		<string>FontAwesome5_Brands.ttf</string>
+		<string>FontAwesome5_Regular.ttf</string>
+		<string>FontAwesome5_Solid.ttf</string>
+		<string>FontAwesome6_Brands.ttf</string>
+		<string>FontAwesome6_Regular.ttf</string>
+		<string>FontAwesome6_Solid.ttf</string>
+		<string>Fontisto.ttf</string>
+		<string>Foundation.ttf</string>
+		<string>Ionicons.ttf</string>
+		<string>MaterialCommunityIcons.ttf</string>
+		<string>MaterialIcons.ttf</string>
+		<string>Octicons.ttf</string>
+		<string>OpenSans-Bold.ttf</string>
+		<string>OpenSans-BoldItalic.ttf</string>
+		<string>OpenSans-ExtraBold.ttf</string>
+		<string>OpenSans-ExtraBoldItalic.ttf</string>
+		<string>OpenSans-Italic.ttf</string>
+		<string>OpenSans-Light.ttf</string>
+		<string>OpenSans-LightItalic.ttf</string>
+		<string>OpenSans-Medium.ttf</string>
+		<string>OpenSans-MediumItalic.ttf</string>
+		<string>OpenSans-Regular.ttf</string>
+		<string>OpenSans-SemiBold.ttf</string>
+		<string>OpenSans-SemiBoldItalic.ttf</string>
+		<string>OpenSans_Condensed-Bold.ttf</string>
+		<string>OpenSans_Condensed-BoldItalic.ttf</string>
+		<string>OpenSans_Condensed-ExtraBold.ttf</string>
+		<string>OpenSans_Condensed-ExtraBoldItalic.ttf</string>
+		<string>OpenSans_Condensed-Italic.ttf</string>
+		<string>OpenSans_Condensed-Light.ttf</string>
+		<string>OpenSans_Condensed-LightItalic.ttf</string>
+		<string>OpenSans_Condensed-Medium.ttf</string>
+		<string>OpenSans_Condensed-MediumItalic.ttf</string>
+		<string>OpenSans_Condensed-Regular.ttf</string>
+		<string>OpenSans_Condensed-SemiBold.ttf</string>
+		<string>OpenSans_Condensed-SemiBoldItalic.ttf</string>
+		<string>OpenSans_SemiCondensed-Bold.ttf</string>
+		<string>OpenSans_SemiCondensed-BoldItalic.ttf</string>
+		<string>OpenSans_SemiCondensed-ExtraBold.ttf</string>
+		<string>OpenSans_SemiCondensed-ExtraBoldItalic.ttf</string>
+		<string>OpenSans_SemiCondensed-Italic.ttf</string>
+		<string>OpenSans_SemiCondensed-Light.ttf</string>
+		<string>OpenSans_SemiCondensed-LightItalic.ttf</string>
+		<string>OpenSans_SemiCondensed-Medium.ttf</string>
+		<string>OpenSans_SemiCondensed-MediumItalic.ttf</string>
+		<string>OpenSans_SemiCondensed-Regular.ttf</string>
+		<string>OpenSans_SemiCondensed-SemiBold.ttf</string>
+		<string>OpenSans_SemiCondensed-SemiBoldItalic.ttf</string>
+		<string>SimpleLineIcons.ttf</string>
+		<string>Zocial.ttf</string>
+	</array>
 </dict>
 </plist>

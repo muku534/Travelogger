@@ -213,7 +213,7 @@ const SearchScreen = ({ route }) => {
                 setSelectedPlaceDetails(placeDetails);
             }
         } catch (error) {
-            logger.error("Error fetching place details:", error);
+            console.log("Error fetching place details:", error);
         }
     };
 
@@ -231,6 +231,7 @@ const SearchScreen = ({ route }) => {
     };
 
     const handleAddToList = () => {
+        // console.log("naresh sharma: ", selectedPlaceDetails);
 
         if (selectedPlaceDetails && coordinates.length === 2) {
             const { latitude, longitude } = selectedPlaceDetails.coordinates;

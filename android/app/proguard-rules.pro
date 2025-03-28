@@ -12,3 +12,10 @@
 -keep class com.swmansion.reanimated.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
 -keep class com.facebook.jni.** { *; }
+
+
+# Google Sign-In
+-keep class com.google.android.gms.** { *; }
+-keep class com.google.api.client.** { *; }
+-keep class com.google.api.services.** { *; }
+-keep class com.google.auth.** { *; }

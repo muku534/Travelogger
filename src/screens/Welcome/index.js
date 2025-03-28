@@ -45,7 +45,7 @@ const WelcomeScreen = ({ navigation }) => {
         });
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
             <GestureHandlerRootView style={{ flex: 1 }}>
@@ -82,7 +82,7 @@ const WelcomeScreen = ({ navigation }) => {
                 </TouchableOpacity>
 
             </GestureHandlerRootView>
-        </SafeAreaView>
+        </View>
     );
 };
 
@@ -92,7 +92,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: COLORS.black,
-        paddingTop: Platform.OS === 'ios' ? hp(4) : 0
     },
     background: {
         ...StyleSheet.absoluteFillObject, // Ensures it takes up the full screen

@@ -1,4 +1,4 @@
-import React, { act, useEffect, useRef, useState, version } from 'react';
+import React, { useEffect, useRef, useState, } from 'react';
 import { View, Text, ImageBackground, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, StatusBar, Animated, Image, ScrollView, Linking, Modal, TextInput, ActivityIndicator, Platform, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
@@ -14,8 +14,10 @@ import { CLEAR_TRIP_DETAILS, DELETE_TRIP_DAY_ITEM } from '../../redux/Actions';
 import FastImage from 'react-native-fast-image';
 import { BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PlanTripDetails = ({ navigation, route }) => {
+    const insets = useSafeAreaInsets();
     const refRBSheet = useRef(null); // Bottom Sheet Ref
     const dispatch = useDispatch();
     const { itineraryId, destination, startDate, endDate, tripImg, coordinates, tripDays } = useSelector(state => state.tripDetails);
@@ -247,6 +249,7 @@ const PlanTripDetails = ({ navigation, route }) => {
 
     const handleSaveItinerary = async () => {
         try {
+            // console.log("before sending  tripDays", tripDays)
             const itineraryData = {
                 itinerary: {
                     userId: userData.userId,
@@ -551,19 +554,19 @@ const PlanTripDetails = ({ navigation, route }) => {
     );
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <View style={{ flex: 1, backgroundColor: COLORS.white }}>
             <StatusBar translucent backgroundColor="transparent" barStyle={activeTab === 'List' ? 'light-content' : 'dark-content'} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(2) }} >
                 <View style={styles.container}>
                     {/* Header Image with Overlay */}
                     {activeTab === 'List' ? (
-                        <ImageBackground source={{ uri: tripImg }} style={styles.headerImage}>
+                        <ImageBackground source={{ uri: tripImg }} style={[styles.headerImage, { paddingTop: insets.top }]}>
                             <View style={styles.overlay} />
                         </ImageBackground>
                     ) : (
                         <MapView
                             provider="google"
-                            style={{ width: wp(100), height: hp(30) }}
+                            style={[{ width: wp(100), height: hp(30) }, { paddingTop: insets.top }]}
                             initialRegion={{
                                 latitude: coordinates?.[0] || 22.3193, // Default if missing
                                 longitude: coordinates?.[1] || 114.1694,
@@ -591,14 +594,14 @@ const PlanTripDetails = ({ navigation, route }) => {
                                 ];
 
                                 return places.map((place, index) => {
-                                    if (!place.location?.coordinates) return null;
+                                    if (!place.location?.coordinates && !place.coordinates) return null;
 
                                     return (
                                         <Marker
                                             key={`${dayIndex}-${index}`}
                                             coordinate={{
-                                                latitude: place.location.coordinates[0],
-                                                longitude: place.location.coordinates[1],
+                                                latitude: place.location?.coordinates?.[0] ?? place.coordinates?.latitude,
+                                                longitude: place.location?.coordinates?.[1] ?? place.coordinates?.longitude,
                                             }}
                                             title={place.title || place.name}
                                             description={place.description || "No description available"}
@@ -1002,7 +1005,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                     </View>
                 </TouchableWithoutFeedback>
             </Modal>
-        </SafeAreaView >
+        </View >
     );
 };
 

@@ -94,14 +94,20 @@ const Profile = ({ navigation }) => {
     };
 
     const openNotificationSettings = () => {
-        AndroidOpenSettings.appNotificationSettings()
+        if (Platform.OS === 'android') {
+            AndroidOpenSettings.appNotificationSettings();
+        } else if (Platform.OS === 'ios') {
+            Linking.openURL('app-settings:');
+        } else {
+            console.warn("Unsupported platform for opening notification settings.");
+        }
     };
 
 
     const handleLogout = async () => {
         try {
             await AsyncStorage.removeItem('userData'); // Clear stored user data
-            dispatch({ type: LOGOUT }); 
+            dispatch({ type: LOGOUT });
             navigation.reset({ index: 0, routes: [{ name: 'SocialAuth' }] }); // Navigate to Login
         } catch (error) {
             logger.error("Logout Error:", error);

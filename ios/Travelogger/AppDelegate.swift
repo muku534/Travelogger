@@ -2,6 +2,8 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import GoogleMaps
+
 
 @main
 class AppDelegate: RCTAppDelegate {
@@ -9,10 +11,11 @@ class AppDelegate: RCTAppDelegate {
     self.moduleName = "Travelogger"
     self.dependencyProvider = RCTAppDependencyProvider()
 
-    // You can add your custom initial props in the dictionary below.
-    // They will be passed down to the ViewController used by React Native.
-    self.initialProps = [:]
+    if let apiKey = Bundle.main.object(forInfoDictionaryKey: "GoogleMapsAPIKey") as? String {
+      GMSServices.provideAPIKey(apiKey)
+    }
 
+    self.initialProps = [:]
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -27,4 +30,6 @@ class AppDelegate: RCTAppDelegate {
     Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
   }
+
+
 }

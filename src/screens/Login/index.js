@@ -14,9 +14,11 @@ import { login } from '../../services/authService';
 import { storeDataInAsyncStorage } from '../../utils/Helper';
 import { LOGIN_SUCCESS } from '../../redux/Actions';
 import Toast from 'react-native-toast-message';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Login = ({ navigation }) => {
     const dispatch = useDispatch(); // Initialize dispatch
+    const insets = useSafeAreaInsets();
     const [form, setForm] = useState({
         email: '',
         password: '',
@@ -76,7 +78,7 @@ const Login = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
                 <ScrollView showsVerticalScrollIndicator={false}>
@@ -84,7 +86,7 @@ const Login = ({ navigation }) => {
                         {/* Background Image */}
                         <ImageBackground
                             source={Images.loginTitle}
-                            style={styles.backgroundImage}
+                            style={[styles.backgroundImage, { paddingTop: insets.top }]}
                             resizeMode="cover"
                         >
                             <View style={styles.textContainer}>
@@ -172,7 +174,7 @@ const Login = ({ navigation }) => {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </View>
     );
 };
 
