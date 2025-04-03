@@ -9,6 +9,7 @@ import { deleteItineraryById } from "../services/planTripService";
 import { useDispatch } from "react-redux";
 import { DELETE_ITINERARY } from "../redux/Actions";
 import Toast from 'react-native-toast-message';
+import FastImage from "react-native-fast-image";
 
 const currencySymbols = {
     USD: "$", EUR: "€", GBP: "£", INR: "₹", JPY: "¥",
@@ -177,7 +178,11 @@ const ItineraryCard = ({ item, onPress, showAIBadge = false, }) => {
             <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
                 <View style={styles.card}>
                     {/* Card Image */}
-                    <Image source={{ uri: item?.tripImg }} style={styles.cardImage} />
+                    <FastImage source={{
+                        uri: item?.tripImg,
+                        priority: FastImage.priority.high,
+                        cache: FastImage.cacheControl.immutable,
+                    }} style={styles.cardImage} resizeMode={FastImage.resizeMode.cover} />
 
                     {/* Card Content */}
                     <View style={styles.cardContent}>
@@ -230,7 +235,7 @@ const ItineraryCard = ({ item, onPress, showAIBadge = false, }) => {
                 height={hp(10.5)}
                 openDuration={250}
                 closeOnPressBack={true}
-                closeOnDragDown={true} 
+                closeOnDragDown={true}
                 customStyles={{
                     container: {
                         borderTopLeftRadius: wp(5),

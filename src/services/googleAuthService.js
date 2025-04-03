@@ -21,7 +21,7 @@ export const signInWithGoogle = async (navigation, dispatch) => {
         // Ensure Google Play Services are available
         await GoogleSignin.hasPlayServices();
         await GoogleSignin.signOut();
-
+        // Now proceed with sign-in
         const userInfo = await GoogleSignin.signIn();
 
         // Show toast message before starting the sign-in process
@@ -34,6 +34,7 @@ export const signInWithGoogle = async (navigation, dispatch) => {
         });
 
         const { idToken } = await GoogleSignin.getTokens();
+
         // Send token to backend
         const response = await googleLogin({ idToken });
 
@@ -68,5 +69,6 @@ export const signInWithGoogle = async (navigation, dispatch) => {
             text2: "Something went wrong!"
         });
         logger.error("Google Sign-In Error:", error);
+
     }
 };

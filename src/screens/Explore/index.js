@@ -1,10 +1,10 @@
-import { GOOGLE_API_KEY } from "@env";
+import { GOOGLE_MAP_API } from "@env";
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, FlatList, TextInput, StyleSheet, SafeAreaView, StatusBar, Image, Animated, Alert, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import { COLORS, fontFamily, Images } from '../../../constants';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from "axios";
 import debounce from "lodash/debounce";
@@ -42,7 +42,7 @@ const Explore = ({ route }) => {
                 {
                     params: {
                         input,
-                        key: GOOGLE_API_KEY,
+                        key: GOOGLE_MAP_API,
                         language: "en",
                     },
                 }
@@ -81,7 +81,7 @@ const Explore = ({ route }) => {
                 {
                     params: {
                         place_id: place.place_id,
-                        key: GOOGLE_API_KEY,
+                        key: GOOGLE_MAP_API,
                     },
                 }
             );
@@ -108,7 +108,7 @@ const Explore = ({ route }) => {
                         location: `${latitude},${longitude}`,
                         radius: 5000, // 5km radius
                         type: "tourist_attraction|park|museum|amusement_park|zoo|aquarium|stadium|night_club|bowling_alley", // Change based on your requirement
-                        key: GOOGLE_API_KEY,
+                        key: GOOGLE_MAP_API,
                     },
                 }
             );
@@ -174,8 +174,11 @@ const Explore = ({ route }) => {
 
                 {/* Map */}
                 <MapView
+                    provider={PROVIDER_GOOGLE}
+                    onMapReady={() => console.log('Map is ready!')}
+                    onRegionChangeComplete={(region) => console.log(region)}
+                    onError={(e) => console.log('Map Error:', e)}
                     style={[styles.map, { height: nearbyPlaces.length > 0 ? hp(45) : hp(100) }]}
-
                     region={selectedLocation ? {
                         latitude: selectedLocation.latitude,
                         longitude: selectedLocation.longitude,
@@ -197,13 +200,14 @@ const Explore = ({ route }) => {
                         <FlatList
                             horizontal
                             data={nearbyPlaces}
+                            showsHorizontalScrollIndicator={false}
                             keyExtractor={(item) => item.place_id}
                             renderItem={({ item }) => (
                                 <TouchableOpacity style={styles.card} onPress={() => handleNearbySelect(item)} activeOpacity={0.7}>
                                     <FastImage
                                         source={{
                                             uri: item.photos?.[0]?.photo_reference
-                                                ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${item.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
+                                                ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${item.photos[0].photo_reference}&key=${GOOGLE_MAP_API}`
                                                 : "https://via.placeholder.com/400",
                                             priority: FastImage.priority.high,
                                             cache: FastImage.cacheControl.immutable,

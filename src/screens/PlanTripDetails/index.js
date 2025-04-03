@@ -565,7 +565,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                         </ImageBackground>
                     ) : (
                         <MapView
-                            provider="google"
+                            provider='google'
                             style={[{ width: wp(100), height: hp(30) }, { paddingTop: insets.top }]}
                             initialRegion={{
                                 latitude: coordinates?.[0] || 22.3193, // Default if missing

@@ -12,10 +12,13 @@ import { storeDataInAsyncStorage } from '../../utils/Helper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from "react-native-toast-message";
 import AndroidOpenSettings from 'react-native-android-open-settings'
+import FastImage from 'react-native-fast-image';
+import DeviceInfo from 'react-native-device-info';
 
 const Profile = ({ navigation }) => {
     const dispatch = useDispatch();
     const userData = useSelector(state => state.userData);
+    const appVersion = DeviceInfo.getVersion();
 
     const openSocialLink = (url) => {
         if (url) {
@@ -138,7 +141,13 @@ const Profile = ({ navigation }) => {
                     {/* Profile Info */}
                     <View style={styles.profileContainer}>
                         {/* <Image source={{ uri: userData?.avatarImgUrl }} style={styles.avatar} /> */}
-                        <Image source={{ uri: userData?.avatarImgUrl.replace("/svg?", "/png?") }} style={styles.avatar} />
+                        <FastImage source={{
+                            uri: userData?.avatarImgUrl.replace("/svg?", "/png?"),
+                            priority: FastImage.priority.high,
+                            cache: FastImage.cacheControl.immutable,
+                        }} style={styles.avatar}
+                            resizeMode={FastImage.resizeMode.cover}
+                        />
                         <Text style={styles.name}>{userData?.name}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', }}>
                             <SVGS.EMAIL width={hp(2.3)} height={hp(2.3)} />
@@ -231,14 +240,12 @@ const Profile = ({ navigation }) => {
                     </View>
 
                     {/* Version */}
-                    <Text style={styles.version}>Version 0.0.1</Text>
+                    <Text style={styles.version}>Version {appVersion}</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>
     );
 };
-
-
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.white },

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
 import debounce from "lodash/debounce";
-import { GOOGLE_API_KEY } from "@env";
+import { GOOGLE_MAP_API } from "@env";
 
 const usePlaceSearch = () => {
     const [destination, setDestination] = useState("");
@@ -23,7 +23,7 @@ const usePlaceSearch = () => {
                 {
                     params: {
                         input,
-                        key: GOOGLE_API_KEY,
+                        key: GOOGLE_MAP_API,
                         language: "en",
                     },
                 }
@@ -64,7 +64,7 @@ const usePlaceSearch = () => {
                 {
                     params: {
                         place_id: place.place_id,
-                        key: GOOGLE_API_KEY,
+                        key: GOOGLE_MAP_API,
                         fields: "geometry,photos",
                     },
                 }
@@ -75,7 +75,7 @@ const usePlaceSearch = () => {
                 // Convert photo references to URLs
                 const images = response.data.result.photos
                     ? response.data.result.photos.map(photo =>
-                        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${GOOGLE_API_KEY}`
+                        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${GOOGLE_MAP_API}`
                     )
                     : []; // If no images, return an empty array
 

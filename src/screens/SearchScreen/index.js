@@ -1,5 +1,5 @@
 import 'react-native-get-random-values';
-import { GOOGLE_API_KEY } from "@env";
+import { GOOGLE_MAP_API } from "@env";
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, FlatList, TextInput, StyleSheet, SafeAreaView, StatusBar, Image, Animated, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -58,7 +58,7 @@ const SearchScreen = ({ route }) => {
                     {
                         params: {
                             latlng: `${coordinates[0]},${coordinates[1]}`,
-                            key: GOOGLE_API_KEY,
+                            key: GOOGLE_MAP_API,
                         },
                     }
                 );
@@ -97,7 +97,7 @@ const SearchScreen = ({ route }) => {
                         location: `${coordinates[0]},${coordinates[1]}`,
                         radius: 5000, // ✅ Show places within 5km radius
                         type: placeType, // ✅ Filter places by type
-                        key: GOOGLE_API_KEY,
+                        key: GOOGLE_MAP_API,
                     },
                 }
             );
@@ -147,7 +147,7 @@ const SearchScreen = ({ route }) => {
                 {
                     params: {
                         input,
-                        key: GOOGLE_API_KEY,
+                        key: GOOGLE_MAP_API,
                         language: "en",
                         location: `${coordinates[0]},${coordinates[1]}`,
                         radius: 50000,
@@ -191,7 +191,7 @@ const SearchScreen = ({ route }) => {
                 {
                     params: {
                         place_id: place.place_id,
-                        key: GOOGLE_API_KEY,
+                        key: GOOGLE_MAP_API,
                     },
                 }
             );
@@ -206,7 +206,7 @@ const SearchScreen = ({ route }) => {
                     rating: details.rating || "N/A", // ✅ Store Ratings
                     website: details.website || "N/A", // ✅ Store Website
                     image: details.photos?.[0]?.photo_reference
-                        ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${details.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
+                        ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${details.photos[0].photo_reference}&key=${GOOGLE_MAP_API}`
                         : "https://via.placeholder.com/400",
                 };
                 setSelectedLocation({ latitude: lat, longitude: lng });
@@ -355,7 +355,7 @@ const SearchScreen = ({ route }) => {
                                     <FastImage
                                         source={{
                                             uri: item.photos?.[0]?.photo_reference
-                                                ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${item.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
+                                                ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${item.photos[0].photo_reference}&key=${GOOGLE_MAP_API}`
                                                 : "https://via.placeholder.com/400",
                                             priority: FastImage.priority.high,
                                             cache: FastImage.cacheControl.immutable,  // Enable caching
