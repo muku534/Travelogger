@@ -9,8 +9,10 @@ import {
 } from '../components/Pixel/Index';
 import LinearGradient from 'react-native-linear-gradient';
 import { AIIternary, Home, MyIternary, Profile } from '../screens';
+import DeviceInfo from 'react-native-device-info';
 
 const Tab = createBottomTabNavigator();
+const isTablet = DeviceInfo.isTablet();
 
 const FloatingActionButton = () => {
     const navigation = useNavigation();
@@ -53,7 +55,7 @@ const FloatingActionButton = () => {
             {/* Overlay only covers screen ABOVE the bottom navigation */}
             {isOpen && <Pressable style={styles.overlay} onPress={closeMenu} />}
 
-            <View style={styles.floatingContainer}>
+            <View style={[styles.floatingContainer, { bottom: isTablet ? hp(4) : hp(5) }]}>
                 {/* Button 2 */}
                 <Animated.View style={[styles.floatingButton, { transform: [{ translateY: button2TranslateY }] }]}>
                     <TouchableOpacity
@@ -119,12 +121,12 @@ const TabStack = () => {
                 lazy: false,
                 tabBarStyle: styles.tabBar,
                 tabBarLabelStyle: {
-                    fontSize: hp(1.4),
+                    fontSize: isTablet ? hp(1.8) : hp(1.4),
                     paddingTop: hp(0.7),
                     fontFamily: fontFamily.FONTS.Medium,
                     textAlign: 'center',
                     flexWrap: 'wrap',
-                    width: wp(20),
+                    width: isTablet ? wp(15) : wp(20),
                     lineHeight: hp(1.8),
                 },
                 tabBarActiveTintColor: COLORS.red,
@@ -201,11 +203,11 @@ const styles = StyleSheet.create({
     tabBar: {
         position: 'absolute',
         backgroundColor: COLORS.white,
-        paddingBottom: hp(1), // Increase padding to prevent text cut-off
-        paddingTop: hp(1),
+        height: isTablet ? hp(8) : hp(10),
+        paddingBottom: isTablet ? hp(0.5) : hp(1),
+        paddingTop: isTablet ? hp(0.5) : hp(1),
         paddingHorizontal: wp(2),
         width: '100%',
-        height: hp(10), // Increased height
         borderColor: COLORS.gray,
         borderWidth: 0.5
     },

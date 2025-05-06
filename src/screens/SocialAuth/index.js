@@ -9,6 +9,11 @@ import fontFamily from '../../../constants/fontFamily';
 import { useDispatch } from 'react-redux';
 import { signInWithGoogle } from '../../services/googleAuthService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import DeviceInfo from 'react-native-device-info';
+import appleAuth from '@invertase/react-native-apple-authentication';
+import { signInWithApple } from '../../services/appleAuthService';
+
+const isTablet = DeviceInfo.isTablet();
 
 const SocialAuth = ({ navigation }) => {
     const dispatch = useDispatch();
@@ -47,6 +52,29 @@ const SocialAuth = ({ navigation }) => {
                             />
                             <Text style={styles.buttonText}>Signup with Google</Text>
                         </TouchableOpacity>
+                     {Platform.OS === 'ios' && appleAuth.isSupported &&(
+                        // Apple Signup Button
+                        <TouchableOpacity
+                        style={styles.signupButton}
+                        onPress={() => signInWithApple(navigation, dispatch)}
+                        >
+                            <Image
+                                source={ICONS.APPLE}
+                                style={styles.icon}
+                                />
+                            <Text style={styles.buttonText}>Signup with Apple</Text>
+                        </TouchableOpacity>
+                        )}
+
+                        {/* Guest Access Option */}
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate('TabStack')} // or your main/home screen name
+                            activeOpacity={0.8}
+                            style={styles.guestButton}
+                        >
+                            <Text style={styles.guestText}>Continue as Guest</Text>
+                        </TouchableOpacity>
+
 
                         {/* Sign In Option */}
                         <View style={styles.signInContainer}>
@@ -82,25 +110,25 @@ const styles = StyleSheet.create({
         marginTop: hp(50)
     },
     logo: {
-        width: wp(52),
-        height: hp(15),
+        width: isTablet ? wp(15) : wp(52),
+        height: isTablet ? hp(8) : Platform.OS === 'ios' ? hp(8): hp(15),
         resizeMode: 'contain',
     },
     signupButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        width: wp(90),
+        width: isTablet ? wp(40) : wp(90),
         height: hp(7),
-        borderRadius: wp(10),
-        marginVertical: hp(3),
+        borderRadius: isTablet ? wp(2) : wp(10),
+        marginVertical: Platform.OS === 'ios' ? hp(1): hp(3),
         backgroundColor: COLORS.white,
         borderColor: COLORS.gray,
         borderWidth: 0.5,
         paddingHorizontal: wp(5),
     },
     icon: {
-        width: wp(7.5),
-        height: wp(7.5),
+        width: isTablet ? wp(2.5) : wp(7.5),
+        height: isTablet ? wp(2.5) : wp(7.5),
         resizeMode: 'contain',
     },
     buttonText: {
@@ -115,7 +143,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: hp(8),
+        marginTop: Platform.OS === 'ios'? hp(2.5): hp(8),
     },
     signInText: {
         fontSize: hp(2),
@@ -127,4 +155,18 @@ const styles = StyleSheet.create({
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.darkgray,
     },
+    guestButton: {
+        marginTop: hp(3),
+        paddingVertical: hp(1.5),
+        paddingHorizontal: wp(8),
+        borderRadius: wp(2),
+        backgroundColor: COLORS.gray, // or any other subtle background
+    },
+    guestText: {
+        fontSize: hp(2),
+        fontFamily: fontFamily.FONTS.Medium,
+        color: COLORS.darkgray,
+        textAlign: 'center',
+    },
+    
 });

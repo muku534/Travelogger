@@ -2,46 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-
-	<!-- Google Sign-In Configuration -->
-    <key>CFBundleURLTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleTypeRole</key>
-            <string>Editor</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
-                <string>com.googleusercontent.apps.669615181991-4o64q1n1i8vk60fqaf67a1ov22qncp3l</string>
-            </array>
-        </dict>
-    </array>
-
-    <key>GIDClientID</key>
-    <string>669615181991-4o64q1n1i8vk60fqaf67a1ov22qncp3l.apps.googleusercontent.com</string>
-
-    <key>GIDRedirectURI</key>
-    <string>com.googleusercontent.apps.669615181991-4o64q1n1i8vk60fqaf67a1ov22qncp3l:/oauth2redirect/google</string>
-
-    <!-- Other necessary permissions & configurations -->
-    <key>LSApplicationQueriesSchemes</key>
-    <array>
-        <string>googlechrome</string>
-        <string>comgooglemaps</string>
-        <string>google</string>
-        <string>com.googleusercontent.apps.669615181991-4o64q1n1i8vk60fqaf67a1ov22qncp3l</string>
-    </array>
-
-	<key>GoogleMapsAPIKey</key>
-	<string>AIzaSyA_YWerZUbcdiqU23lJkOKzK-3GSgk94v4</string>
-
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Travelogger</string>
+	<string>Traveloger</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<string>com.travelogger</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -52,8 +20,35 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.669615181991-4o64q1n1i8vk60fqaf67a1ov22qncp3l</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>GIDClientID</key>
+	<string>$(GID_CLIENT_ID)</string>
+	<key>GIDRedirectURI</key>
+	<string>$(GID_REDIRECT_URI)</string>
+	<key>GoogleMapsAPIKey</key>
+	<string>$(GOOGLE_MAPS_API_KEY)</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>googlechrome</string>
+		<string>tel</string>
+		<string>mailto</string>
+		<string>app-settings</string>
+		<string>comgooglemaps</string>
+		<string>google</string>
+		<string>com.googleusercontent.apps.669615181991-4o64q1n1i8vk60fqaf67a1ov22qncp3l</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -63,22 +58,12 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We use your location to provide background location features like nearby attraction suggestions.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string/>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>arm64</string>
-	</array>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
+	<string>We use your location to show nearby travel spots and enhance your travel experience.</string>
+	<key>NSUserAuthenticationUsageDescription</key>
+	<string>We use your Apple ID to authenticate you securely.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>AntDesign.ttf</string>
@@ -137,5 +122,21 @@
 		<string>SimpleLineIcons.ttf</string>
 		<string>Zocial.ttf</string>
 	</array>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arm64</string>
+	</array>
+	<key>UIStatusBarStyle</key>
+	<string></string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
 </dict>
 </plist>

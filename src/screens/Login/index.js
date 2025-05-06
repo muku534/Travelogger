@@ -15,6 +15,9 @@ import { storeDataInAsyncStorage } from '../../utils/Helper';
 import { LOGIN_SUCCESS } from '../../redux/Actions';
 import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import DeviceInfo from 'react-native-device-info';
+
+const isTablet = DeviceInfo.isTablet();
 
 const Login = ({ navigation }) => {
     const dispatch = useDispatch(); // Initialize dispatch
@@ -104,7 +107,7 @@ const Login = ({ navigation }) => {
                             {/* Email Input */}
                             <View>
                                 <View style={styles.inputContainer}>
-                                    <SVGS.EMAIL width={hp(2.6)} height={hp(2.6)} />
+                                <MaterialCommunityIcons name="email-outline" size={hp(2.5)} color={COLORS.darkgray1} />
                                     <TextInput
                                         placeholder='Email ID'
                                         placeholderTextColor={COLORS.darkgray}
@@ -197,7 +200,7 @@ const styles = StyleSheet.create({
         left: wp(5),
     },
     headerText: {
-        fontSize: wp(6),
+        fontSize: isTablet ? wp(2.5) : wp(6),
         color: COLORS.white,
         fontFamily: fontFamily.FONTS.Medium,
     },
@@ -212,19 +215,18 @@ const styles = StyleSheet.create({
         paddingTop: hp(2),
     },
     loginTitle: {
-        fontSize: wp(6),
+        fontSize: isTablet ? wp(2.5) : wp(6),
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.darkgray,
         textAlign: 'center',
         marginBottom: hp(1),
     },
     loginSubtitle: {
-        fontSize: wp(4),
+        fontSize: isTablet ? wp(2) : wp(4),
         color: COLORS.darkgray1,
         textAlign: 'center',
         marginBottom: hp(2),
     },
-
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -237,6 +239,7 @@ const styles = StyleSheet.create({
     },
     input: {
         flex: 1,
+        paddingLeft:wp(1),
         color: COLORS.darkgray,
     },
     icon: {
@@ -253,12 +256,12 @@ const styles = StyleSheet.create({
         marginVertical: hp(1)
     },
     signupText: {
-        fontSize: wp(4.5),
+        fontSize: isTablet ? wp(2) : wp(4.5),
         color: COLORS.darkgray,
         fontFamily: fontFamily.FONTS.Medium
     },
     signupBold: {
-        fontSize: wp(4.5),
+        fontSize: isTablet ? wp(2) : wp(4.5),
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.red,
     },

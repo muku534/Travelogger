@@ -9,6 +9,9 @@ import { COLORS, fontFamily, SVGS } from "../../../constants";
 import Toast from "react-native-toast-message";
 import CommonHeader from "../../components/CommonHeader";
 import Button from "../../components/Button";
+import DeviceInfo from 'react-native-device-info';
+
+const isTablet = DeviceInfo.isTablet();
 
 const ContactUs = ({ navigation }) => {
     const [name, setName] = useState("");
@@ -41,7 +44,7 @@ const ContactUs = ({ navigation }) => {
     };
 
     // Open external links (phone, email, website)
-    const openLink = (type, value) => {
+    const openLink = async (type, value) => {
         let url = "";
         switch (type) {
             case "phone": url = `tel:${value}`; break;
@@ -54,8 +57,19 @@ const ContactUs = ({ navigation }) => {
             case "website": url = "https://www.travelogger.info/"; break;
             default: return;
         }
-        Linking.openURL(url).catch(() => Alert.alert("Error", "Could not open link"));
+    
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+            Linking.openURL(url);
+        } else {
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Could not open the link.",
+            });
+        }
     };
+    
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
@@ -221,7 +235,7 @@ const styles = StyleSheet.create({
         borderColor: COLORS.Midgray,
         fontFamily: fontFamily.FONTS.Medium,
         color: COLORS.darkgray,
-        borderRadius: wp(2),
+        borderRadius: isTablet ? wp(1) : wp(2),
         padding: hp(1.5),
         fontSize: hp(2),
         marginBottom: hp(2)

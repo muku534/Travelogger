@@ -10,6 +10,9 @@ import Email from '../../../assets/icons/email.svg';
 import Toast from 'react-native-toast-message';
 import { sendOTP } from '../../services/authService';
 import { useSelector } from 'react-redux';
+import DeviceInfo from 'react-native-device-info';
+
+const isTablet = DeviceInfo.isTablet();
 
 const ForgotPassword = ({ navigation, route }) => {
     const { screenType = "forgotPassword" } = route.params || {};
@@ -83,7 +86,7 @@ const ForgotPassword = ({ navigation, route }) => {
                         <View style={styles.container}>
                             {/* Header */}
                             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                                <Ionicons name="arrow-back" size={wp(6)} color={COLORS.darkgray} />
+                                <Ionicons name="arrow-back" size={isTablet ? wp(3) : wp(6)} color={COLORS.darkgray} />
                             </TouchableOpacity>
 
                             {/* Forgot Password Icon */}
@@ -157,13 +160,13 @@ const styles = StyleSheet.create({
         marginBottom: hp(5),
     },
     title: {
-        fontSize: wp(6),
+        fontSize: isTablet ? wp(2.5) : wp(6),
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.darkgray,
         marginBottom: hp(1),
     },
     instruction: {
-        fontSize: wp(3.7),
+        fontSize: isTablet ? wp(2) : wp(3.7),
         paddingHorizontal: wp(2),
         fontFamily: fontFamily.FONTS.Medium,
         color: COLORS.darkgray1,
@@ -172,6 +175,7 @@ const styles = StyleSheet.create({
     },
     inputWrapper: {
         width: '100%',
+        marginTop: isTablet ? hp(1) : hp(0),
         marginBottom: hp(2),
     },
     inputContainer: {
@@ -181,14 +185,14 @@ const styles = StyleSheet.create({
         height: hp(6),
         borderColor: COLORS.Midgray,
         borderWidth: 0.5,
-        borderRadius: wp(2),
+        borderRadius: isTablet ? wp(1) : wp(2),
         paddingLeft: wp(2),
     },
     input: {
         flex: 1,
         paddingLeft: wp(2),
         color: COLORS.darkgray,
-        fontSize: wp(4),
+        fontSize: isTablet ? wp(1.4) : wp(4),
     },
     button: {
         width: wp(90),

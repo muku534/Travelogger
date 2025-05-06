@@ -12,6 +12,9 @@ import usePlaceSearch from "../../hooks/usePlaceSearch";
 import LoadingScreen from "../../components/LoadingScreen";
 import { SET_TRIP_DETAILS } from "../../redux/Actions";
 import logger from "../../utils/logger";
+import DeviceInfo from 'react-native-device-info';
+
+const isTablet = DeviceInfo.isTablet();
 
 const AIPlanTrip = ({ navigation }) => {
     const { destination, suggestions, showSuggestions, placeImages, selectedLocation, handleDestinationChange, handlePlaceSelect } = usePlaceSearch();
@@ -210,7 +213,7 @@ const AIPlanTrip = ({ navigation }) => {
                                     {startDate ? startDate.toDateString() : "Select Start Date"}
                                 </Text>
                                 <TouchableOpacity onPress={() => setOpenStartDate(true)}>
-                                    <SVGS.CALENDAR width={wp(6)} height={hp(6)} />
+                                    <SVGS.CALENDAR width={isTablet ? wp(2.5) : wp(6)} height={isTablet ? hp(3) : hp(6)} />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -233,7 +236,7 @@ const AIPlanTrip = ({ navigation }) => {
                                 {endDate ? endDate.toDateString() : "Select End Date"}
                             </Text>
                             <TouchableOpacity onPress={() => setOpenEndDate(true)}>
-                                <SVGS.CALENDAR width={wp(6)} height={hp(6)} />
+                                <SVGS.CALENDAR width={isTablet ? wp(2.5) : wp(6)} height={isTablet ? hp(3) : hp(6)} />
                             </TouchableOpacity>
                         </View>
                         {openEndDate && (
@@ -365,7 +368,7 @@ const styles = StyleSheet.create({
         borderColor: COLORS.Midgray,
         color: COLORS.darkgray,
         fontFamily: fontFamily.FONTS.Medium,
-        borderRadius: wp(2),
+        borderRadius: isTablet ? wp(1) : wp(2),
         height: hp(6),
         paddingHorizontal: wp(3),
         fontSize: hp(1.8),
@@ -404,7 +407,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         borderWidth: 0.5,
         borderColor: COLORS.Midgray,
-        borderRadius: wp(2),
+        borderRadius: isTablet ? wp(1) : wp(2),
         height: hp(6),
         paddingHorizontal: wp(3),
         fontSize: hp(1.8),
@@ -466,7 +469,7 @@ const styles = StyleSheet.create({
     },
     destinationImage: {
         width: wp(29),
-        height: hp(13),
+        height: isTablet ? hp(25) : hp(13),
         resizeMode: 'contain',
         borderRadius: wp(4),
     },
@@ -481,10 +484,11 @@ const styles = StyleSheet.create({
         alignSelf: "center",
     },
     gradientButton: {
-        width: wp(92),
-        paddingVertical: hp(2),
+        height: hp(6),
+        justifyContent: 'center',
+        width: '100%',
         borderRadius: wp(2),
-        alignItems: "center",
+        alignItems: 'center',
     },
     buttonText: {
         color: COLORS.white,

@@ -3,6 +3,9 @@ import { View, Image, TouchableOpacity, StyleSheet, Platform } from "react-nativ
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "./Pixel/Index";
 import { COLORS, Images, SVGS } from "../../constants";
 import { useNavigation } from "@react-navigation/native";
+import DeviceInfo from "react-native-device-info";
+
+const isTablet = DeviceInfo.isTablet();
 
 const BasicHeader = () => {
     const navigation = useNavigation()
@@ -12,10 +15,14 @@ const BasicHeader = () => {
 
             <View style={styles.headerIcons}>
                 <TouchableOpacity onPress={() => navigation.navigate("Explore", { isSearchOnly: true })}>
-                    <SVGS.SEARCH width={wp(8.5)} height={hp(4)} />
+                    <SVGS.SEARCH width={isTablet ? wp(5.5) : wp(8.5)} height={hp(4)} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate("NotificationScreen")}>
-                    <SVGS.BELL width={wp(8.5)} height={hp(4)} style={styles.notificationIcon} />
+                    <SVGS.BELL
+                        width={isTablet ? wp(5.5) : wp(8.5)}
+                        height={hp(4)}
+                        style={styles.notificationIcon}
+                    />
                 </TouchableOpacity>
             </View>
         </View>
@@ -29,14 +36,14 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: wp(3),
+        paddingHorizontal: isTablet ? wp(0) : wp(3),
         marginTop: Platform.OS === "ios" ? hp(0) : hp(5),
         paddingBottom: hp(1),
         backgroundColor: COLORS.white,
     },
     logo: {
         height: hp(4),
-        width: wp(35),
+        width: isTablet ? wp(14) : wp(35),
         resizeMode: "contain",
     },
     headerIcons: {
@@ -44,6 +51,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     notificationIcon: {
-        marginLeft: wp(2),
+        marginLeft: isTablet ? wp(0) : wp(2),
     },
 });

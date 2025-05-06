@@ -108,7 +108,7 @@ const SignUp = ({ navigation }) => {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <StatusBar backgroundColor={COLORS.white} barStyle={'dark-content'} />
             <ScrollView>
                 <View style={{ paddingVertical: hp(2) }}>
@@ -193,7 +193,7 @@ const SignUp = ({ navigation }) => {
                     </View>
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 };
 
@@ -253,6 +253,7 @@ const styles = StyleSheet.create({
     },
     input: {
         flex: 1,
+        paddingLeft:wp(1),
         color: COLORS.darkgray,
     },
     eyeIcon: {

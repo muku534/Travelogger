@@ -7,6 +7,9 @@ import Button from '../../components/Button';
 import OTPVerification from '../../../assets/icons/OTP_Verification.svg'
 import Toast from 'react-native-toast-message';
 import { verifyOTP } from '../../services/authService';
+import DeviceInfo from 'react-native-device-info';
+
+const isTablet = DeviceInfo.isTablet();
 
 const OtpVerification = ({ navigation, route }) => {
     const { email } = route.params;
@@ -69,13 +72,13 @@ const OtpVerification = ({ navigation, route }) => {
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar backgroundColor={COLORS.white} barStyle="dark-content" />
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-                <TouchableWithoutFeedback onPress={dismissKeyboard}>
-                    <ScrollView contentContainerStyle={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={{ flex: 1 }}>
+                <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+                    <TouchableWithoutFeedback onPress={dismissKeyboard}>
                         <View style={styles.container}>
                             {/* Back Button */}
                             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                                <Ionicons name="arrow-back" size={wp(6)} color={COLORS.darkgray} />
+                                <Ionicons name="arrow-back" size={isTablet ? wp(3) : wp(6)} color={COLORS.darkgray} />
                             </TouchableOpacity>
 
                             <View style={{ flex: 1, alignItems: 'center' }}>
@@ -119,9 +122,9 @@ const OtpVerification = ({ navigation, route }) => {
 
                             </View>
                         </View>
-                    </ScrollView>
-                </TouchableWithoutFeedback>
-            </KeyboardAvoidingView>
+                    </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
+            </ScrollView>
         </SafeAreaView>
     );
 };
@@ -141,13 +144,13 @@ const styles = StyleSheet.create({
         marginTop: hp(8),
     },
     title: {
-        fontSize: wp(6),
+        fontSize: isTablet ? wp(2.5) : wp(6),
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.darkgray,
         marginBottom: hp(1),
     },
     subtitle: {
-        fontSize: wp(3.8),
+        fontSize: isTablet ? wp(2) : wp(3.8),
         textAlign: 'center',
         fontFamily: fontFamily.FONTS.Medium,
         color: COLORS.Midgray,
@@ -160,8 +163,8 @@ const styles = StyleSheet.create({
         marginBottom: hp(3),
     },
     otpBox: {
-        width: wp(12.5),
-        height: wp(12.5),
+        width: isTablet ? wp(8) : wp(12.5),
+        height: isTablet ? wp(8) : wp(12.5),
         borderRadius: wp(2),
         borderColor: COLORS.Midgray,
         marginHorizontal: wp(1.5),

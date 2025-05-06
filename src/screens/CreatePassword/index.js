@@ -1,155 +1,191 @@
-import { SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, ScrollView, Keyboard } from 'react-native';
 import React, { useState } from 'react';
-import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
-import { COLORS, fontFamily } from "../../../constants";
+import {
+    Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text,
+    TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback,
+    Alert
+} from 'react-native';
 import Ionicons from "react-native-vector-icons/Ionicons";
-import CreatePasswordImage from "../../../assets/images/Create_Password.svg";
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
+import { COLORS, fontFamily, SVGS } from "../../../constants";
 import Button from '../../components/Button';
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import Toast from 'react-native-toast-message';  // Import Toast for notifications
-import { updatePassword } from '../../services/authService';
+import { useDispatch, useSelector } from 'react-redux';
+import { updateProfile } from '../../services/authService';
+import { UPDATE_PROFILE } from '../../redux/Actions';
+import logger from '../../utils/logger';
+import { storeDataInAsyncStorage } from '../../utils/Helper';
+import Toast from 'react-native-toast-message';
+import DeviceInfo from 'react-native-device-info';
+import CommonHeader from '../../components/CommonHeader';
 
-const CreatePassword = ({ route, navigation }) => {
-    const { email } = route.params; // Assume the email is passed via navigation
+const isTablet = DeviceInfo.isTablet();
 
-    const [form, setForm] = useState({
-        password: '',
-        confirmPassword: '',
+const EditProfile = ({ navigation }) => {
+    const dispatch = useDispatch()
+    const userData = useSelector(state => state.userData);
+    const [loading, setloading] = useState(false)
+
+    // State management for input fields
+    const [formData, setFormData] = useState({
+        name: userData?.name || '',
+        email: userData?.email || '',
+        phone: userData?.phone || '',
+        location: userData?.location || '',
+        website: userData?.website || '',
+        languages: userData?.languages?.join(', ') || '',
+        bio: userData?.bio || '',
+        instagram: userData?.socialMedia?.instagram || '',
+        facebook: userData?.socialMedia?.facebook || '',
+        twitter: userData?.socialMedia?.twitter || '',
+        linkedin: userData?.socialMedia?.linkedin || '',
+        youtube: userData?.socialMedia?.youtube || '',
     });
-    const [isPasswordShown, setIsPasswordShown] = useState(true);
-    const [isConfirmPasswordShown, setIsConfirmPasswordShown] = useState(true);
-    const [loading, setLoading] = useState(false);
 
-    const handleChange = (field, value) => {
-        setForm(prevState => ({
-            ...prevState,
-            [field]: value,
-        }));
+    // Function to handle input changes
+    const handleChange = (key, value) => {
+        setFormData(prev => ({ ...prev, [key]: value }));
     };
 
-    const handleSubmit = async () => {
-        const { password, confirmPassword } = form;
-
-        // Validate if passwords are empty
-        if (!password || !confirmPassword) {
-            Toast.show({
-                type: 'error',
-                text1: 'All fields are required!',
-                text2: 'Please make sure both password fields are filled.',
-            });
-            return;
-        }
-
-        // Validate if passwords match
-        if (password !== confirmPassword) {
-            Toast.show({
-                type: 'error',
-                text1: 'Password mismatch!',
-                text2: 'Your passwords do not match. Please try again.',
-            });
-            return;
-        }
-        try {
-            setLoading(true);
-            // Change field name to match API requirements
-            const requestedData = {
-                email: email,
-                newPassword: password,
-                confirmPassword: confirmPassword
-            };
-
-            const response = await updatePassword(requestedData);
-
-            // Show success message
-            Toast.show({
-                type: 'success',
-                text1: 'Password updated successfully!',
-                text2: 'You can now log in with your new password.',
-            });
-            // Navigate to Login screen
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-
-        } catch (error) {
-            // Show error message
-            Toast.show({
-                type: 'error',
-                text1: 'Error updating password!',
-                text2: error.message || 'Something went wrong, please try again.',
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
+    // Function to dismiss keyboard
     const dismissKeyboard = () => {
         Keyboard.dismiss();
     };
 
+    const handleSaveChanges = async () => {
+        setloading(true);
+        try {
+            const normalizeUrl = (url) => {
+                if (!url) return "";
+                return !/^https?:\/\//i.test(url) ? `https://${url}` : url;
+            };
+
+            const updatedData = {
+                ...formData,
+                website: normalizeUrl(formData.website),
+                languages: formData.languages
+                    ? formData.languages.split(',').map(lang => lang.trim()) // Convert string to array
+                    : [], // Ensure it's an empty array if empty
+                socialMedia: {
+                    instagram: normalizeUrl(formData.instagram),
+                    facebook: normalizeUrl(formData.facebook),
+                    twitter: normalizeUrl(formData.twitter),
+                    linkedin: normalizeUrl(formData.linkedin),
+                    youtube: normalizeUrl(formData.youtube),
+                }
+            };
+
+            const response = await updateProfile(userData.userId, updatedData);
+
+            const newUserData = {
+                ...userData,
+                ...response,
+                socialMedia: response.socialMedia || {}  // Ensure socialMedia is updated
+            };
+
+            dispatch({
+                type: UPDATE_PROFILE,
+                payload: { updatedData: newUserData },
+            });
+
+            await storeDataInAsyncStorage("userData", newUserData);
+            Toast.show({
+                type: 'success',
+                text1: 'Profile Updated',
+                text2: 'Your profile has been updated successfully.',
+                position: 'top'
+            });
+
+            navigation.goBack();
+
+        } catch (error) {
+            logger.error("Update Profile Error:", error);
+            Toast.show({
+                type: 'error',
+                text1: 'Update Failed',
+                text2: 'Something went wrong. Please try again.',
+                position: 'top'
+            });
+        } finally {
+            setloading(false);
+        }
+    };
+
+
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar backgroundColor={COLORS.white} barStyle="dark-content" />
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+            <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
                 <TouchableWithoutFeedback onPress={dismissKeyboard}>
-                    <ScrollView contentContainerStyle={{ flex: 1 }}>
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(5) }}>
+                        <CommonHeader title="Edit Profile" navigation={navigation} />
                         <View style={styles.container}>
-                            {/* Header */}
-                            <TouchableOpacity style={styles.backButton} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Login' }] })}>
-                                <Ionicons name="arrow-back" size={wp(6)} color={COLORS.darkgray} />
-                            </TouchableOpacity>
 
-                            <View style={{ flex: 1, alignItems: 'center' }}>
-                                {/* Forgot Password Icon */}
-                                <View style={styles.svgContainer}>
-                                    <CreatePasswordImage width={hp(35)} height={hp(25)} />
-                                </View>
-
-                                {/* Forgot Password Title */}
-                                <Text style={styles.title}>Create Password</Text>
-
-                                {/* Instruction Text */}
-                                <Text style={styles.instruction}>
-                                    Create a Strong Password that you will never forget again
-                                </Text>
-
-                                {/* Input Field */}
-                                {/* Password Input */}
-                                <InputField
-                                    label="Password"
-                                    icon={<MaterialCommunityIcons name="lock-outline" size={hp(3)} color={COLORS.darkgray1} />}
-                                    placeholder="Password"
-                                    value={form.password}
-                                    secureTextEntry={isPasswordShown}
-                                    onChangeText={(text) => handleChange('password', text)}
-                                    editable={!loading}
-                                    toggleSecure={() => setIsPasswordShown(!isPasswordShown)}
-                                    isSecure={isPasswordShown}
-                                />
-
-                                {/* Confirm Password Input */}
-                                <InputField
-                                    label="Confirm Password"
-                                    icon={<MaterialCommunityIcons name="lock-outline" size={hp(3)} color={COLORS.darkgray1} />}
-                                    placeholder="Re-Enter Password"
-                                    value={form.confirmPassword}
-                                    secureTextEntry={isConfirmPasswordShown}
-                                    onChangeText={(text) => handleChange('confirmPassword', text)}
-                                    editable={!loading}
-                                    toggleSecure={() => setIsConfirmPasswordShown(!isConfirmPasswordShown)}
-                                    isSecure={isConfirmPasswordShown}
-                                />
-
-                                {/* Submit Button */}
-                                <View style={{ marginVertical: hp(2) }}>
-                                    <Button
-                                        title={loading ? "Updating..." : "Confirm Password"}
-                                        color={COLORS.red}
-                                        onPress={handleSubmit}
-                                        style={styles.button}
-                                        disabled={loading}
-                                    />
-                                </View>
+                            {/* Profile Image */}
+                            <View style={styles.profileContainer}>
+                                <Image source={{ uri: userData?.avatarImgUrl.replace("/svg?", "/png?") }} style={styles.avatar} />
                             </View>
+
+                            {/* Input Fields */}
+                            <View style={styles.inputContainer}>
+                                {Object.entries({
+                                    name: "Full Name",
+                                    email: "Email",
+                                    phone: "Phone Number",
+                                    location: "Address",
+                                    website: "Website",
+                                    languages: "Languages",
+                                    bio: "Bio",
+                                }).map(([key, label]) => (
+                                    <View key={key}>
+                                        <Text style={styles.label}>{label}</Text>
+                                        <TextInput
+                                            style={[styles.input, key === "bio" && styles.textArea]}
+                                            placeholder={`Enter your ${label.toLowerCase()}`}
+                                            placeholderTextColor={COLORS.Midgray}
+                                            value={formData[key]}
+                                            onChangeText={text => handleChange(key, text)}
+                                            multiline={key === "bio"}
+                                            numberOfLines={key === "bio" ? 4 : 1}
+                                            keyboardType={key === "phone" ? "phone-pad" : "default"}
+                                        />
+                                    </View>
+                                ))}
+                            </View>
+
+                            {/* Social Media Links */}
+                            <Text style={styles.sectionTitle}>Social Media Links</Text>
+                            <View style={styles.inputContainer}>
+                                {Object.entries({
+                                    instagram: { label: "Instagram", icon: SVGS.INSTAGRAM },
+                                    facebook: { label: "Facebook", icon: SVGS.FACEBOOKICON },
+                                    twitter: { label: "X", icon: SVGS.TWITTER },
+                                    linkedin: { label: "LinkedIn", icon: SVGS.LINKEDIN },
+                                    youtube: { label: "YouTube", icon: SVGS.YOUTUBEICON },
+                                }).map(([key, { label, icon }]) => (
+                                    <View key={key}>
+                                        <View style={styles.socialRow}>
+                                            {icon && React.createElement(icon, { width: isTablet ? wp(2) : wp(5), height: isTablet ? wp(2) : wp(5) })}
+                                            <Text style={styles.socialRowLabel}>{label}</Text>
+                                        </View>
+
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder={`Enter ${label} profile link`}
+                                            placeholderTextColor={COLORS.Midgray}
+                                            value={formData[key]}
+                                            onChangeText={text => handleChange(key, text)}
+                                        />
+                                    </View>
+                                ))}
+                            </View>
+
+                            {/* Save Button */}
+                            <Button
+                                title="Save Changes"
+                                disabled={loading}
+                                loading={loading}
+                                onPress={handleSaveChanges}
+                            />
+
                         </View>
                     </ScrollView>
                 </TouchableWithoutFeedback>
@@ -158,98 +194,78 @@ const CreatePassword = ({ route, navigation }) => {
     );
 };
 
-const InputField = ({ label, icon, placeholder, value, onChangeText, secureTextEntry, editable, toggleSecure, isSecure }) => (
-    <View>
-        <Text style={styles.label}>{label}</Text>
-        <View style={styles.inputContainer}>
-            {icon}
-            <TextInput
-                placeholder={placeholder}
-                placeholderTextColor={COLORS.darkgray}
-                secureTextEntry={secureTextEntry}
-                style={styles.input}
-                value={value}
-                onChangeText={onChangeText}
-                editable={editable}
-            />
-            {toggleSecure && (
-                <TouchableOpacity onPress={toggleSecure} style={styles.eyeIcon}>
-                    <MaterialIcons name={isSecure ? "visibility-off" : "visibility"} size={24} color={COLORS.darkgray1} />
-                </TouchableOpacity>
-            )}
-        </View>
-    </View>
-);
-
-export default CreatePassword;
+export default EditProfile;
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: COLORS.white,
-    },
     container: {
         flex: 1,
-        paddingHorizontal: wp(4),
+        marginTop: hp(5),
+        paddingHorizontal: wp(5),
     },
-    backButton: {
-        marginTop: hp(8),
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: hp(2),
     },
-    svgContainer: {
-        justifyContent: 'center',
+    headerTitle: {
+        fontSize: wp(5),
+        fontFamily: fontFamily.FONTS.bold,
+        color: COLORS.darkgray,
+        marginLeft: wp(3),
+    },
+    profileContainer: {
         alignItems: 'center',
-        marginBottom: hp(3),
+        justifyContent: 'center',
+        marginBottom: hp(2.5),
     },
-    title: {
-        fontSize: wp(6),
+    avatar: {
+        width: hp(15),
+        height: hp(15),
+        borderRadius: hp(15),
+    },
+    label: {
+        fontSize: isTablet ? wp(2) : wp(4),
+        fontFamily: fontFamily.FONTS.Medium,
+        color: COLORS.darkgray,
+        marginBottom: hp(0.5),
+    },
+    input: {
+        height: hp(5.5),
+        borderWidth: 0.5,
+        borderColor: COLORS.Midgray,
+        color: COLORS.darkgray,
+        fontFamily: fontFamily.FONTS.Medium,
+        borderRadius: hp(1),
+        paddingHorizontal: wp(3),
+        fontSize: isTablet ? wp(1.5) : wp(4),
+        marginBottom: hp(2),
+    },
+    textArea: {
+        height: hp(10),
+        color: COLORS.darkgray,
+        fontFamily: fontFamily.FONTS.Medium,
+        textAlignVertical: "top",
+    },
+    sectionTitle: {
+        fontSize: isTablet ? wp(2.5) : wp(4.5),
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.darkgray,
         marginBottom: hp(1),
+        marginTop: hp(1),
     },
-    instruction: {
-        fontSize: wp(3.7),
-        paddingHorizontal: wp(2),
-        fontFamily: fontFamily.FONTS.Medium,
-        color: COLORS.darkgray1,
-        textAlign: 'center',
-        marginBottom: hp(3),
-    },
-    inputWrapper: {
-        width: '100%',
-        marginBottom: hp(2),
-    },
-    label: {
-        fontSize: hp(1.8),
-        fontFamily: fontFamily.FONTS.bold,
-        color: COLORS.darkgray,
-    },
-    inputContainer: {
-        width: '100%',
+    socialRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: hp(1),
-        height: hp(6),
-        borderColor: COLORS.Midgray,
-        borderWidth: 0.5,
-        borderRadius: wp(2),
-        paddingLeft: wp(2),
+        marginBottom: hp(0.5),
     },
-    input: {
-        flex: 1,
-        paddingLeft: wp(2),
-        color: COLORS.darkgray,
+    socialRowLabel: {
+        fontSize: isTablet ? wp(2) : wp(4),
+        paddingHorizontal: wp(1),
         fontFamily: fontFamily.FONTS.Medium,
-        fontSize: wp(4),
+        color: COLORS.darkgray,
+        marginBottom: hp(0.5),
     },
-    eyeIcon: {
-        position: 'absolute',
-        right: wp(4),
-    },
-    button: {
-        width: wp(90),
-        alignSelf: 'center',
-        borderRadius: wp(3),
-        justifyContent: 'center',
-        alignItems: 'center',
+    saveButton: {
+        marginBottom: hp(4),
     },
 });

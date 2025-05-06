@@ -9,7 +9,8 @@ import {
     Image,
     TouchableOpacity,
     Dimensions,
-    ImageBackground
+    ImageBackground,
+    Platform
 } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from '../../components/Pixel/Index';
@@ -21,11 +22,14 @@ import LinearGradient from 'react-native-linear-gradient';
 import { retrieveDataFromAsyncStorage } from '../../utils/Helper';
 import { useSelector } from 'react-redux';
 import BasicHeader from '../../components/BasicHealder';
+import DeviceInfo from 'react-native-device-info';
+
+const isTablet = DeviceInfo.isTablet();
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const heroData = [
-    { id: '1', image: Images.bgHome, title: 'Plan your Trip with us', subtitle: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.' },
+    { id: '1', image: Images.bgHome, title: 'Plan your Trip with us', subtitle: 'Customize every moment of your journey — from start to finish — your way.' },
     { id: '2', image: Images.bali, title: 'Explore the World', subtitle: 'Discover amazing places with us.' },
     { id: '3', image: Images.turkey, title: 'Your Adventure Awaits', subtitle: 'Book your next trip now!' },
 ];
@@ -72,7 +76,7 @@ const Main = ({ navigation }) => {
                 {/* Hero Section - Swipeable */}
                 <Carousel
                     width={screenWidth}
-                    height={hp(32)}
+                    height={isTablet ? hp(68) : hp(32)}
                     data={heroData}
                     scrollAnimationDuration={800}
                     onSnapToItem={(index) => setActiveHeroIndex(index)}
@@ -115,7 +119,7 @@ const Main = ({ navigation }) => {
                                     style={styles.featureCard}
                                 >
                                     <Text style={styles.featureText}>{item.title}</Text>
-                                    <IconComponent width={wp(13)} height={wp(13)} />
+                                    <IconComponent width={isTablet ? wp(4) : wp(13)} height={isTablet ? wp(4) : wp(13)} />
                                 </LinearGradient>
                             </TouchableOpacity>
                         );
@@ -128,7 +132,7 @@ const Main = ({ navigation }) => {
                     <Text style={styles.sectionTitle}>Famous Places for you</Text>
                     <Carousel
                         width={wp(100)} // Adjusted width for better spacing
-                        height={hp(19)} // Adjusted height
+                        height={isTablet ? wp(35) : hp(19)} // Adjusted height
                         mode="parallax"
                         modeConfig={{
                             parallaxScrollingScale: 0.95, // 🔥 Slightly reduced scale for better side visibility
@@ -184,7 +188,7 @@ const styles = StyleSheet.create({
     },
     heroImage: {
         width: '100%',
-        height: hp(31),
+        height: isTablet ? hp(65) : hp(31),
         resizeMode: 'cover'
     },
     heroTextContainer: {
@@ -194,12 +198,12 @@ const styles = StyleSheet.create({
         right: wp(4)
     },
     heroTitle: {
-        fontSize: hp(2.2),
+        fontSize: isTablet ? hp(3) : hp(2.2),
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.white
     },
     heroSubtitle: {
-        fontSize: hp(1.8),
+        fontSize: isTablet ? hp(2.3) : hp(1.8),
         color: COLORS.white,
         fontFamily: fontFamily.FONTS.Medium,
         marginTop: hp(0.5)
@@ -214,10 +218,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        width: wp(45),  // Adjusted for spacing
-        height: hp(7),   // Increased height for better visibility
-        borderRadius: wp(3),
-        paddingHorizontal: wp(3),
+        width: isTablet ? wp(20) : wp(45),  // Adjusted for spacing
+        height: isTablet ? wp(4) : hp(7),   // Increased height for better visibility
+        borderRadius: isTablet ? wp(1) : wp(3),
         borderWidth: 0.4,
         borderColor: COLORS.gray,
         overflow: 'hidden', // Ensures rounded corners
@@ -225,6 +228,7 @@ const styles = StyleSheet.create({
 
     featureText: {
         fontSize: hp(1.9),
+        paddingHorizontal:wp(3),
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.black,
         flex: 1,
@@ -238,45 +242,45 @@ const styles = StyleSheet.create({
     paginationContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginBottom: hp(1)
+        marginBottom: isTablet ? hp(2) : hp(1)
     },
     paginationDot: {
-        width: wp(2),
-        height: wp(2),
+        width: isTablet ? wp(1.5) : wp(2),
+        height: isTablet ? wp(1.5) : wp(2),
         borderRadius: wp(1),
         backgroundColor: COLORS.gray,
         marginHorizontal: wp(1)
     },
     activeDot: {
         backgroundColor: COLORS.red,
-        width: wp(2.5),
-        height: wp(2.5)
+        width: isTablet ? wp(1.5) : wp(2.5),
+        height: isTablet ? wp(1.5) : wp(2.5)
     },
     sectionTitle: {
-        fontSize: hp(2),
+        fontSize: isTablet ? hp(3) : hp(2),
         color: COLORS.darkgray,
         fontFamily: fontFamily.FONTS.bold,
         marginHorizontal: wp(4),
-        marginVertical: hp(1)
+        marginVertical: isTablet ? hp(2) : hp(1)
     },
     placeCard: {
-        marginHorizontal: wp(1.5),
+        marginHorizontal: isTablet ? wp(4) : wp(1.5),
         alignItems: 'center'
     },
     placeImage: {
-        width: wp(30.5),
-        height: wp(30.5),
+        width: isTablet ? wp(25) : wp(30.5),
+        height: isTablet ? wp(25) : wp(30.5),
         borderRadius: wp(3)
     },
     placeText: {
         marginTop: hp(1),
-        fontSize: wp(4),
+        fontSize: isTablet ? wp(2.4) : wp(4),
         color: COLORS.darkgray,
         fontFamily: fontFamily.FONTS.bold
     },
     famousCard: {
-        width: wp(78), // Reduced slightly to fit spacing
-        height: hp(19),
+        width: isTablet ? wp(99) : wp(78), // Reduced slightly to fit spacing
+        height: isTablet ? wp(33) : hp(19),
         borderRadius: 0,
         overflow: 'hidden',
         alignSelf: 'center',

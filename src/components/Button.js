@@ -6,6 +6,9 @@ import {
 } from './Pixel/Index';
 import { COLORS } from '../../constants';
 import fontFamily from '../../constants/fontFamily';
+import DeviceInfo from 'react-native-device-info';
+
+const isTablet = DeviceInfo.isTablet();
 
 const Button = ({ title, onPress, disabled, loading }) => {
     return (
@@ -27,8 +30,9 @@ const Button = ({ title, onPress, disabled, loading }) => {
 const styles = StyleSheet.create({
     button: {
         height: hp(6),
-        width: wp(90),
-        borderRadius: wp(3),
+        width: isTablet ? wp(50) : wp(90),
+        borderRadius: isTablet ? wp(1) : wp(3),
+        marginHorizontal: isTablet ? wp(20) : wp(0),
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: wp(5),

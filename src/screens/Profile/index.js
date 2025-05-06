@@ -12,13 +12,11 @@ import { storeDataInAsyncStorage } from '../../utils/Helper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from "react-native-toast-message";
 import AndroidOpenSettings from 'react-native-android-open-settings'
-import FastImage from 'react-native-fast-image';
-import DeviceInfo from 'react-native-device-info';
 
 const Profile = ({ navigation }) => {
     const dispatch = useDispatch();
     const userData = useSelector(state => state.userData);
-    const appVersion = DeviceInfo.getVersion();
+    const isGuest = !userData || Object.keys(userData).length === 0;
 
     const openSocialLink = (url) => {
         if (url) {
@@ -96,15 +94,22 @@ const Profile = ({ navigation }) => {
         );
     };
 
-    const openNotificationSettings = () => {
-        if (Platform.OS === 'android') {
+    const openNotificationSettings = async () => {
+        if (Platform.OS === 'ios') {
+            const url = 'app-settings:';
+            const supported = await Linking.canOpenURL(url);
+            if (supported) {
+                Linking.openURL(url);
+            } else {
+                Alert.alert("Error", "Unable to open settings");
+            }
+        } else if (Platform.OS === 'android') {
             AndroidOpenSettings.appNotificationSettings();
-        } else if (Platform.OS === 'ios') {
-            Linking.openURL('app-settings:');
         } else {
-            console.warn("Unsupported platform for opening notification settings.");
+            Alert.alert("Unsupported platform", "This action is not supported on your device.");
         }
     };
+    
 
 
     const handleLogout = async () => {
@@ -131,125 +136,134 @@ const Profile = ({ navigation }) => {
     ];
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <View style={styles.container}>
             <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(13) }}>
-                <View style={styles.container}>
-                    {/* Header Section */}
-                    <View style={styles.header} />
+            {isGuest ? (
+            <View style={styles.guestContainer}>
+                <Text style={styles.guestTitle}>You're browsing as a guest</Text>
+                <Text style={styles.guestSubtitle}>Log in to unlock more features.</Text>
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('SocialAuth')}
+                    style={styles.loginButton}
+                >
+                    <Text style={styles.loginButtonText}>Log In</Text>
+                </TouchableOpacity>
+            </View>
+            ) : (
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(13) }}>
+                    <View style={styles.container}>
+                        {/* Header Section */}
+                        <View style={styles.header} />
 
-                    {/* Profile Info */}
-                    <View style={styles.profileContainer}>
-                        {/* <Image source={{ uri: userData?.avatarImgUrl }} style={styles.avatar} /> */}
-                        <FastImage source={{
-                            uri: userData?.avatarImgUrl.replace("/svg?", "/png?"),
-                            priority: FastImage.priority.high,
-                            cache: FastImage.cacheControl.immutable,
-                        }} style={styles.avatar}
-                            resizeMode={FastImage.resizeMode.cover}
-                        />
-                        <Text style={styles.name}>{userData?.name}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', }}>
-                            <SVGS.EMAIL width={hp(2.3)} height={hp(2.3)} />
-                            <Text style={styles.email}>{userData?.email}</Text>
-                        </View>
+                        {/* Profile Info */}
+                        <View style={styles.profileContainer}>
+                            {/* <Image source={{ uri: userData?.avatarImgUrl }} style={styles.avatar} /> */}
+                            <Image source={{ uri: userData?.avatarImgUrl.replace("/svg?", "/png?") }} style={styles.avatar} />
+                            <Text style={styles.name}>{userData?.name}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', }}>
+                                <SVGS.EMAIL width={hp(2.3)} height={hp(2.3)} />
+                                <Text style={styles.email}>{userData?.email}</Text>
+                            </View>
 
-                        {/* Display Bio if Available */}
-                        {userData?.bio && userData.bio.trim().length > 0 && (
-                            <Text style={styles.bio} numberOfLines={1}>{userData.bio}</Text>
-                        )}
-
-                        {/* Social Icons */}
-                        <View style={styles.socialIcons}>
-                            {userData?.socialMedia?.youtube && (
-                                <TouchableOpacity
-                                    style={styles.socialIcon}
-                                    onPress={() => openSocialLink(userData.socialMedia.youtube)}
-                                >
-                                    <SVGS.YOUTUBE width={hp(3.8)} height={hp(3.8)} />
-                                </TouchableOpacity>
+                            {/* Display Bio if Available */}
+                            {userData?.bio && userData.bio.trim().length > 0 && (
+                                <Text style={styles.bio} numberOfLines={1}>{userData.bio}</Text>
                             )}
 
-                            {userData?.socialMedia?.facebook && (
-                                <TouchableOpacity
-                                    style={styles.socialIcon}
-                                    onPress={() => openSocialLink(userData.socialMedia.facebook)}
-                                >
-                                    <SVGS.FACEBOOK width={hp(3.8)} height={hp(3.8)} />
-                                </TouchableOpacity>
-                            )}
-
-                            {userData?.socialMedia?.instagram && (
-                                <TouchableOpacity
-                                    style={styles.socialIcon}
-                                    onPress={() => openSocialLink(userData.socialMedia.instagram)}
-                                >
-                                    <SVGS.INSTAGRAMICON width={hp(4.2)} height={hp(4.2)} />
-                                </TouchableOpacity>
-                            )}
-
-                            {userData?.socialMedia?.linkedin && (
-                                <TouchableOpacity
-                                    style={styles.socialIcon}
-                                    onPress={() => openSocialLink(userData.socialMedia.linkedin)}
-                                >
-                                    <SVGS.LINKEDINICON width={hp(3.8)} height={hp(3.8)} />
-                                </TouchableOpacity>
-                            )}
-
-                            {userData?.socialMedia?.twitter && (
-                                <TouchableOpacity
-                                    style={styles.socialIcon}
-                                    onPress={() => openSocialLink(userData.socialMedia.twitter)}
-                                >
-                                    <SVGS.TWITTERICON width={hp(3.8)} height={hp(3.8)} />
-                                </TouchableOpacity>
-                            )}
-
-                            {userData?.website && (
-                                <TouchableOpacity
-                                    style={styles.socialIcon}
-                                    onPress={() => openSocialLink(userData.website)}
-                                >
-                                    <SVGS.WORLDICON width={hp(3.8)} height={hp(3.8)} />
-                                </TouchableOpacity>
-                            )}
-
-                        </View>
-
-                    </View>
-
-                    {/* Menu List */}
-                    <View style={styles.menuContainer}>
-                        {menuItems.map((item, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                style={styles.menuItem}
-                                onPress={() => item.action ? item.action() : handleNavigation(item.screen)}
-                            >
-                                <View style={styles.menuLeft}>
-                                    {item.icon}
-                                    <Text style={styles.menuText}>{item.label}</Text>
-                                </View>
-                                {/* Conditionally render chevron for logout */}
-                                {item.label !== 'Logout' && (
-                                    <Ionicons name="chevron-forward" size={hp(2.5)} color={COLORS.darkgray1} />
+                            {/* Social Icons */}
+                            <View style={styles.socialIcons}>
+                                {userData?.socialMedia?.youtube && (
+                                    <TouchableOpacity
+                                        style={styles.socialIcon}
+                                        onPress={() => openSocialLink(userData.socialMedia.youtube)}
+                                    >
+                                        <SVGS.YOUTUBE width={hp(3.8)} height={hp(3.8)} />
+                                    </TouchableOpacity>
                                 )}
-                            </TouchableOpacity>
-                        ))}
-                    </View>
 
-                    {/* Version */}
-                    <Text style={styles.version}>Version {appVersion}</Text>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
+                                {userData?.socialMedia?.facebook && (
+                                    <TouchableOpacity
+                                        style={styles.socialIcon}
+                                        onPress={() => openSocialLink(userData.socialMedia.facebook)}
+                                    >
+                                        <SVGS.FACEBOOK width={hp(3.8)} height={hp(3.8)} />
+                                    </TouchableOpacity>
+                                )}
+
+                                {userData?.socialMedia?.instagram && (
+                                    <TouchableOpacity
+                                        style={styles.socialIcon}
+                                        onPress={() => openSocialLink(userData.socialMedia.instagram)}
+                                    >
+                                        <SVGS.INSTAGRAMICON width={hp(4.2)} height={hp(4.2)} />
+                                    </TouchableOpacity>
+                                )}
+
+                                {userData?.socialMedia?.linkedin && (
+                                    <TouchableOpacity
+                                        style={styles.socialIcon}
+                                        onPress={() => openSocialLink(userData.socialMedia.linkedin)}
+                                    >
+                                        <SVGS.LINKEDINICON width={hp(3.8)} height={hp(3.8)} />
+                                    </TouchableOpacity>
+                                )}
+
+                                {userData?.socialMedia?.twitter && (
+                                    <TouchableOpacity
+                                        style={styles.socialIcon}
+                                        onPress={() => openSocialLink(userData.socialMedia.twitter)}
+                                    >
+                                        <SVGS.TWITTERICON width={hp(3.8)} height={hp(3.8)} />
+                                    </TouchableOpacity>
+                                )}
+
+                                {userData?.website && (
+                                    <TouchableOpacity
+                                        style={styles.socialIcon}
+                                        onPress={() => openSocialLink(userData.website)}
+                                    >
+                                        <SVGS.WORLDICON width={hp(3.8)} height={hp(3.8)} />
+                                    </TouchableOpacity>
+                                )}
+
+                            </View>
+
+                        </View>
+
+                        {/* Menu List */}
+                        <View style={styles.menuContainer}>
+                            {menuItems.map((item, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={styles.menuItem}
+                                    onPress={() => item.action ? item.action() : handleNavigation(item.screen)}
+                                >
+                                    <View style={styles.menuLeft}>
+                                        {item.icon}
+                                        <Text style={styles.menuText}>{item.label}</Text>
+                                    </View>
+                                    {/* Conditionally render chevron for logout */}
+                                    {item.label !== 'Logout' && (
+                                        <Ionicons name="chevron-forward" size={hp(2.5)} color={COLORS.darkgray1} />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        {/* Version */}
+                        <Text style={styles.version}>Version 0.0.1</Text>
+                    </View>
+                </ScrollView>
+            )}
+        </View>
     );
 };
 
+
+
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.white },
-    header: { height: hp(16), backgroundColor: '#FFEAEA' },
+    header: { height: Platform.OS === 'ios' ? hp(18) : hp(16), backgroundColor: '#FFEAEA' },
     bio: {
         fontSize: hp(1.9),
         color: COLORS.darkgray,
@@ -258,7 +272,7 @@ const styles = StyleSheet.create({
         marginVertical: hp(0.5),
         marginHorizontal: wp(5),
     },
-    profileContainer: { alignItems: 'center', marginTop: -hp(7) },
+    profileContainer: { alignItems: 'center', marginTop: Platform.OS === 'ios' ? -hp(8): -hp(7) },
     avatar: { width: hp(15), height: hp(15), borderRadius: hp(15) },
     name: { fontSize: hp(2.5), color: COLORS.darkgray, fontFamily: fontFamily.FONTS.bold, marginTop: hp(1) },
     email: { fontSize: hp(1.8), color: COLORS.darkgray, marginHorizontal: hp(0.5) },
@@ -284,6 +298,38 @@ const styles = StyleSheet.create({
     menuLeft: { flexDirection: 'row', alignItems: 'center' },
     menuText: { fontSize: hp(2), marginLeft: wp(3), color: COLORS.darkgray, fontFamily: fontFamily.FONTS.Medium },
     version: { textAlign: 'center', color: COLORS.darkgray1, marginTop: hp(1.8), fontSize: hp(1.7) },
+    guestContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: wp(10),
+    },
+    guestTitle: {
+        fontSize: hp(2.5),
+        fontFamily: fontFamily.FONTS.bold,
+        color: COLORS.darkgray,
+        marginBottom: hp(1),
+        textAlign: 'center',
+    },
+    guestSubtitle: {
+        fontSize: hp(2),
+        fontFamily: fontFamily.FONTS.Medium,
+        color: COLORS.darkgray1,
+        textAlign: 'center',
+        marginBottom: hp(4),
+    },
+    loginButton: {
+        backgroundColor: COLORS.red,
+        paddingVertical: hp(1.5),
+        paddingHorizontal: wp(10),
+        borderRadius: wp(2),
+    },
+    loginButtonText: {
+        color: COLORS.white,
+        fontSize: hp(2),
+        fontFamily: fontFamily.FONTS.Medium,
+    },
+    
 });
 
 export default Profile;

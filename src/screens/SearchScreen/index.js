@@ -1,7 +1,7 @@
 import 'react-native-get-random-values';
 import { GOOGLE_MAP_API } from "@env";
 import React, { useCallback, useRef, useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, FlatList, TextInput, StyleSheet, SafeAreaView, StatusBar, Image, Animated, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, TextInput, StyleSheet, SafeAreaView, StatusBar, Image, Animated, Alert, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import { COLORS, fontFamily, Images } from '../../../constants';
@@ -15,8 +15,9 @@ import { ADD_TRIP_DAY_ITEM } from "../../redux/Actions";
 import logger from '../../utils/logger';
 import Toast from "react-native-toast-message";
 import { v4 as uuidv4 } from 'uuid';
-import FastImage from "react-native-fast-image";
+import DeviceInfo from 'react-native-device-info';
 
+const isTablet = DeviceInfo.isTablet();
 
 const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
     const R = 6371; // Radius of the Earth in km
@@ -352,18 +353,15 @@ const SearchScreen = ({ route }) => {
 
                             return (
                                 <TouchableOpacity style={styles.card} onPress={() => handlePlaceSelect(item)} activeOpacity={0.7}>
-                                    <FastImage
-                                        source={{
-                                            uri: item.photos?.[0]?.photo_reference
-                                                ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${item.photos[0].photo_reference}&key=${GOOGLE_MAP_API}`
-                                                : "https://via.placeholder.com/400",
-                                            priority: FastImage.priority.high,
-                                            cache: FastImage.cacheControl.immutable,  // Enable caching
-                                        }}
-                                        style={styles.cardImage}
-                                        resizeMode={FastImage.resizeMode.cover}
+                                <Image
+                                    source={{
+                                        uri: item.photos?.[0]?.photo_reference
+                                        ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${item.photos[0].photo_reference}&key=${GOOGLE_MAP_API}`
+                                        : 'https://via.placeholder.com/400'
+                                    }}
+                                    style={styles.cardImage}
+                                    resizeMode="cover"
                                     />
-
                                     <View style={styles.cardDetails}>
                                         <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
                                         <Text style={styles.cardRating} numberOfLines={1}>
@@ -396,7 +394,7 @@ export default SearchScreen;
 
 
 const styles = StyleSheet.create({
-    container: { flex: 1, marginTop: hp(6.2), backgroundColor: COLORS.white },
+    container: { flex: 1, marginTop: Platform.OS === "ios" ? hp(0) : hp(6.2), backgroundColor: COLORS.white },
     headerContainer: {
         paddingHorizontal: wp(3),
         flexDirection: "row",
@@ -411,7 +409,7 @@ const styles = StyleSheet.create({
         fontFamily: fontFamily.FONTS.bold,
     },
     label: {
-        fontSize: wp(4),
+        fontSize: isTablet ? wp(1.2) : wp(4),
         color: COLORS.darkgray,
         fontFamily: fontFamily.FONTS.bold,
         marginBottom: hp(1),
@@ -420,10 +418,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         color: COLORS.darkgray,
         borderColor: COLORS.Midgray,
-        borderRadius: wp(2),
+        borderRadius: isTablet ? wp(1) : wp(2),
         padding: hp(1.5),
         height: hp(6),
-        fontSize: wp(4),
+        fontSize: isTablet ? wp(1) : wp(4),
         marginBottom: hp(2),
     },
     suggestionBox: {
@@ -455,7 +453,7 @@ const styles = StyleSheet.create({
     },
     map: {
         width: '100%',
-        height: hp(45),
+        height: isTablet ? wp(60) : hp(45),
         borderRadius: wp(2),
         marginBottom: hp(2),
     },
@@ -476,12 +474,12 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         paddingVertical: hp(1),
-        borderTopLeftRadius: wp(4),
-        borderTopRightRadius: wp(4),
+        borderTopLeftRadius: isTablet ? wp(1) : wp(4),
+        borderTopRightRadius: isTablet ? wp(1) : wp(4),
     },
     card: {
         marginBottom: hp(3),
-        width: wp(45),
+        width: isTablet ? wp(20) : wp(45),
         height: hp(25),
         marginHorizontal: wp(2),
         backgroundColor: COLORS.white,

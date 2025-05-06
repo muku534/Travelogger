@@ -4,14 +4,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
 import { COLORS, fontFamily, Images, SVGS } from '../../../constants';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
 import Toast from "react-native-toast-message";
 import { createItineraries, ShareItinerary, updateItineraryById } from '../../services/planTripService';
 import logger from '../../utils/logger';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { CLEAR_TRIP_DETAILS, DELETE_TRIP_DAY_ITEM } from '../../redux/Actions';
-import FastImage from 'react-native-fast-image';
 import { BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -565,7 +564,7 @@ const PlanTripDetails = ({ navigation, route }) => {
                         </ImageBackground>
                     ) : (
                         <MapView
-                            provider='google'
+                            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
                             style={[{ width: wp(100), height: hp(30) }, { paddingTop: insets.top }]}
                             initialRegion={{
                                 latitude: coordinates?.[0] || 22.3193, // Default if missing
@@ -719,15 +718,16 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                     <View>
                                                         <View style={styles.placeContainer}>
                                                             <View style={styles.imageContainer}>
-                                                                <FastImage
-                                                                    source={{
-                                                                        uri: hotel.image || (hotel.photos?.length > 0 ? hotel.photos[0].url : "fallback-image-url"),
-                                                                        priority: FastImage.priority.high,
-                                                                        cache: FastImage.cacheControl.immutable
-                                                                    }}
-                                                                    style={styles.placeImage}
+                                                            <Image
+                                                                source={{
+                                                                    uri:
+                                                                    hotel.image ||
+                                                                    (hotel.photos?.length > 0
+                                                                        ? hotel.photos[0].url
+                                                                        : 'fallback-image-url'),
+                                                                }}
+                                                                style={styles.placeImage}
                                                                 />
-
                                                                 <View style={styles.badge}>
                                                                     <Text style={styles.badgeText}>{hotelIndex + 1}</Text>
                                                                 </View>
@@ -781,14 +781,17 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                     <View>
                                                         <View style={styles.placeContainer}>
                                                             <View style={styles.imageContainer}>
-                                                                <FastImage
-                                                                    source={{
-                                                                        uri: activity.image || (activity.photos?.length > 0 ? activity.photos[0].url : "fallback-image-url"),
-                                                                        priority: FastImage.priority.high,
-                                                                        cache: FastImage.cacheControl.immutable
-                                                                    }}
-                                                                    style={styles.placeImage}
+                                                            <Image
+                                                                source={{
+                                                                    uri:
+                                                                    activity.image ||
+                                                                    (activity.photos?.length > 0
+                                                                        ? activity.photos[0].url
+                                                                        : 'fallback-image-url'),
+                                                                }}
+                                                                style={styles.placeImage}
                                                                 />
+
 
                                                                 {/* <Image source={{ uri: activity.image || "" }} style={styles.placeImage} /> */}
                                                                 <View style={styles.badge}>
@@ -840,13 +843,15 @@ const PlanTripDetails = ({ navigation, route }) => {
                                                     <View>
                                                         <View style={styles.placeContainer}>
                                                             <View style={styles.imageContainer}>
-                                                                <FastImage
-                                                                    source={{
-                                                                        uri: restaurant.image || (restaurant.photos?.length > 0 ? restaurant.photos[0].url : "fallback-image-url"),
-                                                                        priority: FastImage.priority.high,
-                                                                        cache: FastImage.cacheControl.immutable
-                                                                    }}
-                                                                    style={styles.placeImage}
+                                                            <Image
+                                                                source={{
+                                                                    uri:
+                                                                    restaurant.image ||
+                                                                    (restaurant.photos?.length > 0
+                                                                        ? restaurant.photos[0].url
+                                                                        : 'fallback-image-url'),
+                                                                }}
+                                                                style={styles.placeImage}
                                                                 />
 
                                                                 {/* <Image source={{ uri: restaurant.image || "" }} style={styles.placeImage} /> */}

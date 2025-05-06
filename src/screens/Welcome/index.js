@@ -17,10 +17,13 @@ import {
 } from '../../components/Pixel/Index';
 import { COLORS, Images } from '../../../constants';
 import fontFamily from '../../../constants/fontFamily';
+import DeviceInfo from 'react-native-device-info';
+
+const isTablet = DeviceInfo.isTablet();
 
 const WelcomeScreen = ({ navigation }) => {
     const iconTranslate = useSharedValue(0);
-    const maxSwipeDistance = wp(50);
+    const maxSwipeDistance = isTablet ? wp(59.5) : wp(50);
     const swipeThreshold = wp(20);
 
     const resetIconPosition = () => {
@@ -54,7 +57,7 @@ const WelcomeScreen = ({ navigation }) => {
                     <ImageBackground
                         source={Images.bgImage}
                         style={styles.background}
-                        resizeMode="stretch"
+                        resizeMode="cover"
                     >
                         <View style={styles.textContainer}>
                             <Text style={styles.title}>Plan Your Dream Trip Your Way: Manually Or AI!</Text>
@@ -72,7 +75,7 @@ const WelcomeScreen = ({ navigation }) => {
                             {/* Animated Icon: Only the icon will move */}
                             <Animated.View
                                 style={[styles.iconContainer, { transform: [{ translateX: iconTranslate }] }]}>
-                                <MaterialCommunityIcons name="chevron-triple-right" size={hp(3.5)} color={COLORS.white} />
+                                <MaterialCommunityIcons name="chevron-triple-right" size={isTablet ? hp(3) : hp(3.5)} color={COLORS.white} />
                             </Animated.View>
 
                             {/* Static Button Text: Text stays in place */}
@@ -104,14 +107,14 @@ const styles = StyleSheet.create({
         paddingBottom: hp(17),
     },
     title: {
-        fontSize: wp(6),
+        fontSize: isTablet ? wp(2.5) : wp(6),
         fontFamily: fontFamily.FONTS.bold,
         color: COLORS.white,
         textAlign: 'center',
         padding: hp(1.5),
     },
     subtitle: {
-        fontSize: wp(4),
+        fontSize: isTablet ? wp(2) : wp(4),
         color: COLORS.white,
         textAlign: 'center',
         opacity: 0.9,
@@ -136,8 +139,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     buttonText: {
-        fontSize: wp(4.5),
-        paddingHorizontal: wp(8),
+        fontSize: isTablet ? wp(2.5) : wp(4.5),
+        paddingHorizontal: isTablet ? wp(22) : wp(8),
         fontFamily: fontFamily.FONTS.Medium,
         color: COLORS.white,
         marginRight: wp(2),
@@ -145,7 +148,7 @@ const styles = StyleSheet.create({
     },
     iconContainer: {
         backgroundColor: COLORS.Midgray,
-        padding: wp(2),
+        padding: isTablet ? wp(1) : wp(2),
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: hp(10),

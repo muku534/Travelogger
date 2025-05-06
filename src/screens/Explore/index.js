@@ -4,12 +4,14 @@ import { View, Text, TouchableOpacity, FlatList, TextInput, StyleSheet, SafeArea
 import { useNavigation } from '@react-navigation/native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../components/Pixel/Index";
 import { COLORS, fontFamily, Images } from '../../../constants';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from "axios";
 import debounce from "lodash/debounce";
 import logger from '../../utils/logger';
-import FastImage from "react-native-fast-image";
+import DeviceInfo from "react-native-device-info";
+
+const isTablet = DeviceInfo.isTablet();
 
 const Explore = ({ route }) => {
     const navigation = useNavigation();
@@ -174,7 +176,7 @@ const Explore = ({ route }) => {
 
                 {/* Map */}
                 <MapView
-                    provider={PROVIDER_GOOGLE}
+                    provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
                     onMapReady={() => console.log('Map is ready!')}
                     onRegionChangeComplete={(region) => console.log(region)}
                     onError={(e) => console.log('Map Error:', e)}
@@ -204,16 +206,15 @@ const Explore = ({ route }) => {
                             keyExtractor={(item) => item.place_id}
                             renderItem={({ item }) => (
                                 <TouchableOpacity style={styles.card} onPress={() => handleNearbySelect(item)} activeOpacity={0.7}>
-                                    <FastImage
+                                   <Image
                                         source={{
                                             uri: item.photos?.[0]?.photo_reference
-                                                ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${item.photos[0].photo_reference}&key=${GOOGLE_MAP_API}`
-                                                : "https://via.placeholder.com/400",
-                                            priority: FastImage.priority.high,
-                                            cache: FastImage.cacheControl.immutable,
+                                            ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${item.photos[0].photo_reference}&key=${GOOGLE_MAP_API}`
+                                            : 'https://via.placeholder.com/400'
                                         }}
                                         style={styles.cardImage}
-                                    />
+                                        resizeMode="cover"
+                                        />
                                     <View style={styles.cardDetails}>
                                         <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
                                         <Text style={styles.cardRating}>
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
         fontFamily: fontFamily.FONTS.bold,
     },
     label: {
-        fontSize: wp(4),
+        fontSize: isTablet ? wp(1.2) : wp(4),
         color: COLORS.darkgray,
         fontFamily: fontFamily.FONTS.bold,
         marginBottom: hp(1),
@@ -263,10 +264,10 @@ const styles = StyleSheet.create({
         borderWidth: 0.5,
         color: COLORS.darkgray,
         borderColor: COLORS.Midgray,
-        borderRadius: wp(2),
+        borderRadius: isTablet ? wp(1) : wp(2),
         padding: hp(1.5),
         height: hp(6),
-        fontSize: wp(4),
+        fontSize: isTablet ? wp(1) : wp(4),
         marginBottom: hp(2),
     },
     suggestionBox: {
@@ -314,16 +315,16 @@ const styles = StyleSheet.create({
         right: 0,
         paddingVertical: hp(1),
         // backgroundColor: "rgba(255, 255, 255, 0.9)",
-        borderTopLeftRadius: wp(4),
-        borderTopRightRadius: wp(4),
+        borderTopLeftRadius: isTablet ? wp(1) : wp(4),
+        borderTopRightRadius: isTablet ? wp(1) : wp(4),
     },
     card: {
         marginBottom: hp(3),
-        width: wp(45),
+        width: isTablet ? wp(20) : wp(45),
         height: hp(28),
         marginHorizontal: wp(2),
         backgroundColor: COLORS.white,
-        borderRadius: wp(3),
+        borderRadius: isTablet ? wp(1) : wp(3),
         overflow: "hidden",
         shadowColor: "#000",
         shadowOpacity: 0.2,
