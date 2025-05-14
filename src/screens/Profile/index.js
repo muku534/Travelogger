@@ -280,6 +280,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        marginTop: hp(1),
         marginHorizontal: wp(2),
     },
     socialIcon: {

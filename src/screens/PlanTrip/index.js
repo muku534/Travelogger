@@ -126,97 +126,95 @@ const PlanTrip = ({ navigation }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
       <StatusBar backgroundColor={COLORS.white} barStyle={'dark-content'} />
+      <CommonHeader title="Plan Your Trip" navigation={navigation} />
       {isGuest ? (
-            <View style={styles.guestContainer}>
-                <Text style={styles.guestTitle}>You're browsing as a guest</Text>
-                <Text style={styles.guestSubtitle}>Log in to unlock more features.</Text>
-                <TouchableOpacity
-                    onPress={() => navigation.navigate('SocialAuth')}
-                    style={styles.loginButton}
-                >
-                    <Text style={styles.loginButtonText}>Log In</Text>
-                </TouchableOpacity>
+        <View style={styles.guestContainer}>
+          <Text style={styles.guestTitle}>You're browsing as a guest</Text>
+          <Text style={styles.guestSubtitle}>Log in to unlock more features.</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('SocialAuth')}
+            style={styles.loginButton}
+          >
+            <Text style={styles.loginButtonText}>Log In</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.container}>
+          {/* Destination Input */}
+          <Text style={styles.label}>Destination</Text>
+          <TextInput style={styles.input} placeholderTextColor={COLORS.Midgray} placeholder="Enter Destination" value={destination} onChangeText={handleDestinationChange} />
+
+          {/* Suggestions List */}
+          {showSuggestions && (
+            <Animated.View style={[styles.suggestionBox, { opacity: suggestionBoxRef, zIndex: showSuggestions ? 2 : -1 }]}>
+              <FlatList
+                data={suggestions}
+                keyExtractor={(item) => item.place_id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity style={styles.suggestionItem} onPress={() => handlePlaceSelect(item)}>
+                    <Text style={styles.suggestionText}>{item.description}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </Animated.View>
+          )}
+
+          {/* Start Date */}
+          <View style={{ zIndex: showSuggestions ? -1 : 1 }}>
+            <Text style={styles.label}>Start Date</Text>
+            <View style={styles.datePicker}>
+              <Text style={{ color: COLORS.darkgray }}>
+                {startDate ? startDate.toDateString() : "Select Date"}
+              </Text>
+              <TouchableOpacity onPress={() => setOpenStart(true)}>
+                <SVGS.CALENDARICON width={wp(6)} height={hp(3)} />
+              </TouchableOpacity>
             </View>
-            ) : (
-              <View>
-                <CommonHeader title="Plan Your Trip" navigation={navigation} />
-                <View style={styles.container}>
-                  {/* Destination Input */}
-                  <Text style={styles.label}>Destination</Text>
-                  <TextInput style={styles.input} placeholderTextColor={COLORS.Midgray} placeholder="Enter Destination" value={destination} onChangeText={handleDestinationChange} />
+          </View>
+          {/* ✅ Fix: Ensure `openStart` is triggered correctly */}
+          {openStart && (
+            <DatePicker
+              modal
+              open={openStart}
+              date={startDate || today}
+              mode="date"
+              minimumDate={today}
+              onConfirm={handleStartDate}
+              onCancel={() => setOpenStart(false)}
 
-                  {/* Suggestions List */}
-                  {showSuggestions && (
-                    <Animated.View style={[styles.suggestionBox, { opacity: suggestionBoxRef, zIndex: showSuggestions ? 2 : -1 }]}>
-                      <FlatList
-                        data={suggestions}
-                        keyExtractor={(item) => item.place_id}
-                        renderItem={({ item }) => (
-                          <TouchableOpacity style={styles.suggestionItem} onPress={() => handlePlaceSelect(item)}>
-                            <Text style={styles.suggestionText}>{item.description}</Text>
-                          </TouchableOpacity>
-                        )}
-                      />
-                    </Animated.View>
-                  )}
+            />
+          )}
 
-                  {/* Start Date */}
-                  <View style={{ zIndex: showSuggestions ? -1 : 1 }}>
-                    <Text style={styles.label}>Start Date</Text>
-                    <View style={styles.datePicker}>
-                      <Text style={{ color: COLORS.darkgray }}>
-                        {startDate ? startDate.toDateString() : "Select Date"}
-                      </Text>
-                      <TouchableOpacity onPress={() => setOpenStart(true)}>
-                        <SVGS.CALENDARICON width={wp(6)} height={hp(3)} />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  {/* ✅ Fix: Ensure `openStart` is triggered correctly */}
-                  {openStart && (
-                    <DatePicker
-                      modal
-                      open={openStart}
-                      date={startDate || today}
-                      mode="date"
-                      minimumDate={today}
-                      onConfirm={handleStartDate}
-                      onCancel={() => setOpenStart(false)}
+          {/* End Date */}
+          <Text style={styles.label}>End Date</Text>
+          <View style={styles.datePicker}>
+            <Text style={{ color: COLORS.darkgray }}>
+              {endDate ? endDate.toDateString() : "End Date"}
+            </Text>
+            <TouchableOpacity onPress={() => setOpenEnd(true)}>
+              <SVGS.CALENDARICON width={wp(6)} height={hp(3)} />
+            </TouchableOpacity>
+          </View>
+          {/* ✅ Fix: Ensure `openEnd` is triggered correctly */}
+          {openEnd && (
+            <DatePicker
+              modal
+              open={openEnd}
+              date={endDate || new Date(today.getTime() + 24 * 60 * 60 * 1000)}
+              mode="date"
+              minimumDate={startDate ? new Date(startDate.getTime() + 24 * 60 * 60 * 1000) : new Date(today.getTime() + 24 * 60 * 60 * 1000)}
+              onConfirm={handleEndDate}
+              onCancel={() => setOpenEnd(false)}
+            />
+          )}
 
-                    />
-                  )}
-
-                  {/* End Date */}
-                  <Text style={styles.label}>End Date</Text>
-                  <View style={styles.datePicker}>
-                    <Text style={{ color: COLORS.darkgray }}>
-                      {endDate ? endDate.toDateString() : "End Date"}
-                    </Text>
-                    <TouchableOpacity onPress={() => setOpenEnd(true)}>
-                      <SVGS.CALENDARICON width={wp(6)} height={hp(3)} />
-                    </TouchableOpacity>
-                  </View>
-                  {/* ✅ Fix: Ensure `openEnd` is triggered correctly */}
-                  {openEnd && (
-                    <DatePicker
-                      modal
-                      open={openEnd}
-                      date={endDate || new Date(today.getTime() + 24 * 60 * 60 * 1000)}
-                      mode="date"
-                      minimumDate={startDate ? new Date(startDate.getTime() + 24 * 60 * 60 * 1000) : new Date(today.getTime() + 24 * 60 * 60 * 1000)}
-                      onConfirm={handleEndDate}
-                      onCancel={() => setOpenEnd(false)}
-                    />
-                  )}
-
-                  {/* Continue Planning Button */}
-                  <Button
-                    title="Continue Planning"
-                    onPress={handleContinue}
-                  />
-                </View>
-              </View>
-            )}
+          {/* Continue Planning Button */}
+          <Button
+            title="Continue Planning"
+            onPress={handleContinue}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -241,7 +239,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.Midgray,
     color: COLORS.darkgray,
     fontFamily: fontFamily.FONTS.Medium,
-    borderRadius: isTablet ? wp(1) : wp(2),
+    borderRadius: wp(2),
     height: hp(6),
     paddingHorizontal: wp(3),
     fontSize: hp(1.8),
@@ -282,7 +280,7 @@ const styles = StyleSheet.create({
     height: hp(6),
     color: COLORS.darkgray,
     borderColor: COLORS.Midgray,
-    borderRadius: isTablet ? wp(1) : wp(2),
+    borderRadius: wp(2),
     padding: hp(1.5),
     fontSize: wp(4),
     marginBottom: hp(2),
@@ -294,35 +292,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  guestContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: wp(10),
-},
-guestTitle: {
-    fontSize: hp(2.5),
-    fontFamily: fontFamily.FONTS.bold,
-    color: COLORS.darkgray,
-    marginBottom: hp(1),
-    textAlign: 'center',
-},
-guestSubtitle: {
-    fontSize: hp(2),
-    fontFamily: fontFamily.FONTS.Medium,
-    color: COLORS.darkgray1,
-    textAlign: 'center',
-    marginBottom: hp(4),
-},
-loginButton: {
-    backgroundColor: COLORS.red,
-    paddingVertical: hp(1.5),
-    paddingHorizontal: wp(10),
-    borderRadius: wp(2),
-},
-loginButtonText: {
-    color: COLORS.white,
-    fontSize: hp(2),
-    fontFamily: fontFamily.FONTS.Medium,
-},
 });

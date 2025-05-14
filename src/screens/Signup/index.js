@@ -166,6 +166,7 @@ const SignUp = ({ navigation }) => {
                     <FlatList
                         data={avatars}
                         horizontal
+                        showsHorizontalScrollIndicator={false}
                         keyExtractor={(item, index) => index.toString()}
                         renderItem={({ item }) => (
                             <TouchableOpacity onPress={() => handleChange('selectedAvatar', item)} style={styles.avatarWrapper}>

@@ -26,7 +26,7 @@ const SocialAuth = ({ navigation }) => {
                 backgroundColor="transparent"
                 barStyle="light-content"
             />
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(5) }}>
                 <View style={[styles.container, { paddingTop: insets.top }]}>
                     {/* Background Image */}
                     <ImageBackground
@@ -52,19 +52,19 @@ const SocialAuth = ({ navigation }) => {
                             />
                             <Text style={styles.buttonText}>Signup with Google</Text>
                         </TouchableOpacity>
-                     {Platform.OS === 'ios' && appleAuth.isSupported &&(
-                        // Apple Signup Button
+                        {/* {Platform.OS === 'ios' && appleAuth.isSupported && (
+                            // Apple Signup Button */}
                         <TouchableOpacity
-                        style={styles.signupButton}
-                        onPress={() => signInWithApple(navigation, dispatch)}
+                            style={styles.signupButton}
+                            onPress={() => signInWithApple(navigation, dispatch)}
                         >
                             <Image
                                 source={ICONS.APPLE}
                                 style={styles.icon}
-                                />
+                            />
                             <Text style={styles.buttonText}>Signup with Apple</Text>
                         </TouchableOpacity>
-                        )}
+                        {/* )} */}
 
                         {/* Guest Access Option */}
                         <TouchableOpacity
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     },
     logo: {
         width: isTablet ? wp(15) : wp(52),
-        height: isTablet ? hp(8) : Platform.OS === 'ios' ? hp(8): hp(15),
+        height: isTablet ? hp(8) : Platform.OS === 'ios' ? hp(8) : hp(10),
         resizeMode: 'contain',
     },
     signupButton: {
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
         width: isTablet ? wp(40) : wp(90),
         height: hp(7),
         borderRadius: isTablet ? wp(2) : wp(10),
-        marginVertical: Platform.OS === 'ios' ? hp(1): hp(3),
+        marginVertical: Platform.OS === 'ios' ? hp(1) : hp(1),
         backgroundColor: COLORS.white,
         borderColor: COLORS.gray,
         borderWidth: 0.5,
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: Platform.OS === 'ios'? hp(2.5): hp(8),
+        marginTop: Platform.OS === 'ios' ? hp(2.5) : hp(3.5),
     },
     signInText: {
         fontSize: hp(2),
@@ -168,5 +168,5 @@ const styles = StyleSheet.create({
         color: COLORS.darkgray,
         textAlign: 'center',
     },
-    
+
 });

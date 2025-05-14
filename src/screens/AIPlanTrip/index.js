@@ -470,6 +470,7 @@ const styles = StyleSheet.create({
     destinationImage: {
         width: wp(29),
         height: isTablet ? hp(25) : hp(13),
+        height: hp(13),
         resizeMode: 'contain',
         borderRadius: wp(4),
     },
@@ -484,11 +485,10 @@ const styles = StyleSheet.create({
         alignSelf: "center",
     },
     gradientButton: {
-        height: hp(6),
-        justifyContent: 'center',
-        width: '100%',
+        width: wp(92),
+        paddingVertical: hp(2),
         borderRadius: wp(2),
-        alignItems: 'center',
+        alignItems: "center",
     },
     buttonText: {
         color: COLORS.white,
@@ -496,4 +496,3 @@ const styles = StyleSheet.create({
         fontFamily: fontFamily.FONTS.bold
     },
 });
-
