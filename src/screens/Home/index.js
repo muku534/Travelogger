@@ -72,7 +72,7 @@ const Main = ({ navigation }) => {
             {/* Header */}
             <BasicHeader />
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(13.5) }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(14) }}>
                 {/* Hero Section - Swipeable */}
                 <Carousel
                     width={screenWidth}
