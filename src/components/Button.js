@@ -7,22 +7,29 @@ import {
 import { COLORS } from '../../constants';
 import fontFamily from '../../constants/fontFamily';
 import DeviceInfo from 'react-native-device-info';
+import LinearGradient from 'react-native-linear-gradient';
 
 const isTablet = DeviceInfo.isTablet();
 
 const Button = ({ title, onPress, disabled, loading }) => {
     return (
         <TouchableOpacity
-            style={styles.button}
             onPress={onPress}
             disabled={disabled || loading}
             activeOpacity={0.5}
         >
-            {loading ? (
-                <ActivityIndicator color={COLORS.white} size="large" />
-            ) : (
-                <Text style={styles.buttonText}>{title}</Text>
-            )}
+            <LinearGradient
+                colors={['#ff4444', '#cc0000']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.button}
+            >
+                {loading ? (
+                    <ActivityIndicator color={COLORS.white} size="large" />
+                ) : (
+                    <Text style={styles.buttonText}>{title}</Text>
+                )}
+            </LinearGradient>
         </TouchableOpacity>
     );
 };
@@ -36,7 +43,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: wp(5),
-        backgroundColor: COLORS.red,
     },
     buttonText: {
         fontSize: hp(2.2),
